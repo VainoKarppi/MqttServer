@@ -25,17 +25,17 @@ void setup() {
   pinMode(LED_OUTPUT_PIN, OUTPUT);
   digitalWrite(LED_OUTPUT_PIN, HIGH);
 
-  setup_wifi();
+  /*setup_wifi();
   client.setServer(mqtt_server, 1234);
-  client.setCallback(callback);
+  client.setCallback(callback);*/
   dht.begin();
 }
 
 void loop() {
-  if (!client.connected()) {
+  /*if (!client.connected()) {
     reconnect();
   }
-  client.loop();
+  client.loop();*/
 
   float h = dht.readHumidity();
   float t = dht.readTemperature();
@@ -46,11 +46,11 @@ void loop() {
   Serial.print(t);
   Serial.println();
 
-  char message[50];
+  /*char message[50];
   snprintf(message, 50, "Hello from ESP32 at %ld", millis());
   client.publish("esp32/test", message);
   Serial.print("Message sent: ");
-  Serial.println(message);
+  Serial.println(message);*/
   delay(5000);
 }
 
