@@ -1,7 +1,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <Wire.h>
-#include "DHT.h"
+#include <dht.h>
 
 #define DHTTYPE DHT11 // sensor type
 #define DHTPIN 34 // data pin(middle)
@@ -17,7 +17,7 @@ PubSubClient client(espClient);
 
 const int LED_OUTPUT_PIN = 19;
 
-DHT dht(DHTPIN, DHTTYPE);
+DHT dht(DHTPIN, DHTTYPE); // DHT object
 
 void setup() {
   Serial.begin(9600);
