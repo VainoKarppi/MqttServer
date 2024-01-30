@@ -3,8 +3,8 @@
 #include <Wire.h>
 #include "DHT.h"
 
-#define DHTTYPE DHT11
-#define DHTPIN 34
+#define DHTTYPE DHT11 // sensor type
+#define DHTPIN 34 // data pin(middle)
 
 const char* ssid = "PIENKONE";
 const char* password = "12345679";
