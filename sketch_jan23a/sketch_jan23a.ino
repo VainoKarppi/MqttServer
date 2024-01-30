@@ -44,6 +44,7 @@ void loop() {
   Serial.print(h);
   Serial.print(F("%  Temperature: "));
   Serial.print(t);
+  Serial.println();
 
   char message[50];
   snprintf(message, 50, "Hello from ESP32 at %ld", millis());
