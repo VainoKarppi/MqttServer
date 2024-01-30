@@ -3,8 +3,8 @@
 #include <Wire.h>
 #include "DHT.h"
 
-#define DHTTYPE DHT22
-#define DHTPIN 4
+#define DHTTYPE DHT11
+#define DHTPIN 34
 
 const char* ssid = "PIENKONE";
 const char* password = "12345679";
