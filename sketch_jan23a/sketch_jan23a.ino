@@ -1,10 +1,12 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <Wire.h>
-#include <dht.h>
+#include <DHT.h>
+
+
 
 #define DHTTYPE DHT11 // sensor type
-#define DHTPIN 34 // data pin(middle)
+#define DHTPIN 27 // data pin(middle)
 
 const char* ssid = "PIENKONE";
 const char* password = "12345679";
@@ -17,7 +19,7 @@ PubSubClient client(espClient);
 
 const int LED_OUTPUT_PIN = 19;
 
-dht DHT; // DHT object
+DHT dht(DHTPIN, DHTTYPE); // DHT object
 
 void setup() {
   Serial.begin(9600);
@@ -28,6 +30,7 @@ void setup() {
   /*setup_wifi();
   client.setServer(mqtt_server, 1234);
   client.setCallback(callback);*/
+  dht.begin();
 }
 
 void loop() {
@@ -36,8 +39,8 @@ void loop() {
   }
   client.loop();*/
 
-  int readData = DHT.read11(DHTPIN);
-
+  //int readData = DHT.read11(DHTPIN);
+  
   float h = dht.readHumidity();
   float t = dht.readTemperature();
 
@@ -130,3 +133,5 @@ void reconnect() {
     }
   }
 }
+
+
