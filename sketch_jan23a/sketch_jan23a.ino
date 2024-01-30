@@ -17,7 +17,7 @@ PubSubClient client(espClient);
 
 const int LED_OUTPUT_PIN = 19;
 
-dht DHT; // DHT object
+DHT dht(DHTPIN, DHTTYPE); // DHT object
 
 void setup() {
   Serial.begin(9600);
@@ -28,6 +28,7 @@ void setup() {
   /*setup_wifi();
   client.setServer(mqtt_server, 1234);
   client.setCallback(callback);*/
+  dht.begin();
 }
 
 void loop() {
@@ -35,8 +36,6 @@ void loop() {
     reconnect();
   }
   client.loop();*/
-
-  int readData = DHT.read11(DHTPIN);
 
   float h = dht.readHumidity();
   float t = dht.readTemperature();
