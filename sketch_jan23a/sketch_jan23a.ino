@@ -7,10 +7,10 @@
 #define DHTPIN 27     // data pin(middle)
 #define ENABLEMQQT true
 
-const char *ssid = "PIENKONE";
-const char *password = "12345679";
+const char *ssid = "MB210-G";
+const char *password = "studentMAMK";
 
-const char *mqtt_server = "192.168.137.1";
+const char *mqtt_server = "172.20.50.151";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -46,7 +46,6 @@ void loop()
         client.loop();
     }
 
-    int readData = DHT.read11(DHTPIN);
 
     float h = dht.readHumidity();
     float t = dht.readTemperature();
