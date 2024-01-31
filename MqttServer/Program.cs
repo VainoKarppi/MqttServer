@@ -10,11 +10,18 @@ using System.Text;
 
 
 //! START SERVER
+
+// CREATE SERVER
 var mqttFactory = new MqttFactory();
 //var mqttFactory = new MqttFactory(new ConsoleLogger());
 var options = new MqttServerOptionsBuilder().WithDefaultEndpoint().WithDefaultEndpointPort(1234).Build();
-
 using MqttServer Server = mqttFactory.CreateMqttServer(options);
+
+
+// Connect to database and select it. Creates new database if does not exists
+await Database.ConnectToDatabase();
+Console.WriteLine("Connected to database!");
+
 
 // Subscribe to all client messages
 Server.ApplicationMessageNotConsumedAsync += ClientMessageEvent;
@@ -27,20 +34,22 @@ Console.WriteLine("Server Started!");
 
 
 Console.WriteLine("\nCommands: Exit, Send\n");
-while (true)
-{
-    string? input = Console.ReadLine()?.ToLower();
-    if (string.IsNullOrEmpty(input)) continue;
-    if (input == "exit") break;
+while (true) {
+    try {
+        string? input = Console.ReadLine()?.ToLower();
+        if (string.IsNullOrEmpty(input)) continue;
+        if (input == "exit") break;
 
-    if (input == "send") {
-        Console.WriteLine("\nEnter topic: ");
-        string? topic = Console.ReadLine();
-        Console.WriteLine("\nEnter payload: ");
-        string? mode = Console.ReadLine();
-        await SendData(topic, mode);
+        if (input == "send") {
+            Console.WriteLine("\nEnter topic: ");
+            string? topic = Console.ReadLine();
+            Console.WriteLine("\nEnter payload: ");
+            string? mode = Console.ReadLine();
+            await SendData(topic, mode);
+        }
+    } catch (Exception ex) {
+        Console.WriteLine(ex.Message);
     }
-
 }
 
 

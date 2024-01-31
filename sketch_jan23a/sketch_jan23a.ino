@@ -5,13 +5,16 @@
 
 #define DHTTYPE DHT11 // temp/moist sensor type
 #define DHTPIN 27     // temp/moist sensor data pin(middle)
-#define ENABLEMQQT true
 
 // wifi credentials
 const char *ssid = "MB210-G";
 const char *password = "studentMAMK";
 
 const char *mqtt_server = "172.20.50.151";
+const int mqtt_port = 1234;
+const char* mqtt_clientID = "ESP32CLIENT";
+const char* mqtt_username = "your-username";
+const char* mqtt_password = "your-password";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -49,29 +52,24 @@ float calculateAverage() {
 	return(avgTemp);
 }
 
-void setup()
-{
+void setup() {
     Serial.begin(9600);
 
     pinMode(LED_OUTPUT_PIN, OUTPUT);
     digitalWrite(LED_OUTPUT_PIN, HIGH);
 
-    if (ENABLEMQQT)
-    {
-        setup_wifi();
-        client.setServer(mqtt_server, mqtt_port);
-        client.setCallback(callback);
-    }
     dht.begin();
+
+    setup_wifi();
+    client.setServer(mqtt_server, mqtt_port);
+    client.setCallback(callback);
 }
 
 void loop() {
-    if (ENABLEMQQT) {
-        if (!client.connected()) {
-            reconnect();
-        }
-        client.loop();
+    if (!client.connected()) {
+        reconnect();
     }
+    client.loop();
 
     // Variable for measured temperature
     float measuredTemp = 0.0;
@@ -100,24 +98,13 @@ void loop() {
      // Convert the average temperature value to a char array and publish it to MQTT
     char tempString[8];
     dtostrf(averageTemp, 1, 2, tempString);
-    mqttClient.publish("esp32/temperature", tempString);
+    client.publish("esp32/temperature", tempString);
 
-    // Sleep X seconds before next measurement
-    sleep(2);
 
-    if (ENABLEMQQT)
-    {
-        char message[50];
-        snprintf(message, 50, "Hello from ESP32 at %ld", millis());
-        client.publish("esp32/test", message);
-        Serial.print("Message sent: ");
-        Serial.println(message);
-    }
     delay(5000);
 }
 
-void setup_wifi()
-{
+void setup_wifi() {
     delay(10);
     // We start by connecting to a WiFi network
     Serial.println();
@@ -126,8 +113,7 @@ void setup_wifi()
 
     WiFi.begin(ssid, password);
 
-    while (WiFi.status() != WL_CONNECTED)
-    {
+    while (WiFi.status() != WL_CONNECTED) {
         delay(500);
         Serial.print(".");
     }
@@ -139,15 +125,13 @@ void setup_wifi()
 }
 
 // CALLBACKS
-void callback(char *topic, byte *message, unsigned int length)
-{
+void callback(char *topic, byte *message, unsigned int length) {
     Serial.print("Message arrived on topic: ");
     Serial.print(topic);
     Serial.print(". Message: ");
     String messageTemp;
 
-    for (int i = 0; i < length; i++)
-    {
+    for (int i = 0; i < length; i++) {
         Serial.print((char)message[i]);
         messageTemp += (char)message[i];
     }
@@ -157,16 +141,12 @@ void callback(char *topic, byte *message, unsigned int length)
 
     // If a message is received on the topic esp32/output, you check if the message is either "on" or "off".
     // Changes the output state according to the message
-    if (String(topic) == "hello")
-    {
+    if (String(topic) == "hello") {
         Serial.print("Changing output to ");
-        if (messageTemp == "on")
-        {
+        if (messageTemp == "on") {
             digitalWrite(LED_OUTPUT_PIN, HIGH);
             Serial.println("on");
-        }
-        else if (messageTemp == "off")
-        {
+        } else if (messageTemp == "off") {
             digitalWrite(LED_OUTPUT_PIN, LOW);
             Serial.println("off");
         }
@@ -174,16 +154,14 @@ void callback(char *topic, byte *message, unsigned int length)
 }
 
 // MQTT RECONNECT
-void reconnect()
-{
+void reconnect() {
     // Loop until we're reconnected
-    while (!client.connected())
-    {
+    while (!client.connected()) {
         delay(2500);
 
         Serial.print("Attempting MQTT connection...");
         // Attempt to connect
-        if (client.connect(mqtt_clientID,mqtt_server,mqtt_password)) {
+        if (client.connect("ESP32Client", mqtt_username, mqtt_password)) {
             Serial.println("connected");
             // Subscribe
             client.subscribe("hello");
