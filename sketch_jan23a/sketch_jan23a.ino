@@ -3,10 +3,11 @@
 #include <Wire.h>
 #include <DHT.h>
 
-#define DHTTYPE DHT11 // sensor type
-#define DHTPIN 27     // data pin(middle)
+#define DHTTYPE DHT11 // temp/moist sensor type
+#define DHTPIN 27     // temp/moist sensor data pin(middle)
 #define ENABLEMQQT true
 
+// wifi credentials
 const char *ssid = "MB210-G";
 const char *password = "studentMAMK";
 
@@ -15,7 +16,7 @@ const char *mqtt_server = "172.20.50.151";
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-const int LED_OUTPUT_PIN = 19;
+const int LED_OUTPUT_PIN = 19; // debug led
 
 DHT dht(DHTPIN, DHTTYPE); // DHT object
 
