@@ -5,6 +5,8 @@ using MQTTnet.Server;
 using MQTTnet;
 using System.Text.Json;
 using MQTTnet.Packets;
+using MQTTnet.Client;
+using System.Text;
 
 
 
@@ -13,25 +15,6 @@ var mqttFactory = new MqttFactory(new ConsoleLogger());
 var options = new MqttServerOptionsBuilder().WithDefaultEndpoint().WithDefaultEndpointPort(1234).Build();
 
 using MqttServer Server = mqttFactory.CreateMqttServer(options);
-
-var storePath = Path.Combine(Path.GetTempPath(), "tempHistory.json");
-
-Server.RetainedMessageChangedAsync += async eventArgs => {
-    try {
-        // This sample uses the property _StoredRetainedMessages_ which will contain all(!) retained messages.
-        // The event args also contain the affected retained message (property ChangedRetainedMessage). This can be
-        // used to write all retained messages to dedicated files etc. Then all files must be loaded and a full list
-        // of retained messages must be provided in the loaded event.
-
-        var models = eventArgs.StoredRetainedMessages.Select(MqttRetainedMessageModel.Create);
-
-        var buffer = JsonSerializer.SerializeToUtf8Bytes(models);
-        await File.WriteAllBytesAsync(storePath, buffer);
-        Console.WriteLine("Retained messages saved.");
-    } catch (Exception exception) {
-        Console.WriteLine(exception);
-    }
-};
 
 
 await Server.StartAsync();
@@ -76,6 +59,30 @@ async Task SendData(string? topic, string? mode) {
             SenderClientId = "SenderClientId"
         });
 }
+
+
+
+
+
+
+
+
+
+
+/*
+private static Task HandleReceivedMessage(MqttApplicationMessageReceivedEventArgs eventArgs) {
+    // Handle the received message
+    string topic = eventArgs.ApplicationMessage.Topic;
+    string payload = Encoding.UTF8.GetString(eventArgs.ApplicationMessage.Payload);
+    Console.WriteLine($"Received message on topic '{topic}': {payload}");
+
+    // You can add your custom message handling logic here
+
+    return Task.CompletedTask;
+}*/
+
+
+
 
 class ConsoleLogger : IMqttNetLogger {
     readonly object _consoleSyncRoot = new();
