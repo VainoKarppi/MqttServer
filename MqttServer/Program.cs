@@ -18,6 +18,8 @@ using MqttServer Server = mqttFactory.CreateMqttServer(options);
 
 // Subscribe to all client messages
 Server.ApplicationMessageNotConsumedAsync += ClientMessageEvent;
+Server.ClientConnectedAsync += ClientConnectedEvent;
+Server.ClientDisconnectedAsync += ClientDisconnectedEvent;
 
 
 await Server.StartAsync();
@@ -53,6 +55,19 @@ static Task ClientMessageEvent(ApplicationMessageNotConsumedEventArgs args) {
     return Task.CompletedTask;
 }
 
+static Task ClientConnectedEvent(ClientConnectedEventArgs args) {
+    Console.WriteLine("Client Connected! ");
+    Console.WriteLine(args.ClientId);
+
+    return Task.CompletedTask;
+}
+
+static Task ClientDisconnectedEvent(ClientDisconnectedEventArgs args) {
+    Console.WriteLine("Client disconnected!");
+    Console.WriteLine(args.ClientId);
+
+    return Task.CompletedTask;
+}
 
 
 
