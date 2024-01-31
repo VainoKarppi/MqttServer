@@ -13,7 +13,9 @@ const char *password = "studentMAMK";
 
 const char *mqtt_server = "172.20.50.151";
 const int mqtt_port = 1234;
+const char* mqtt_clientID = "ESP32Client";
 const char* mqtt_username = "esp32-test-user";
+const char* mqtt_password = "password";
 
 
 WiFiClient espClient;
@@ -135,7 +137,7 @@ void reconnect()
 
         Serial.print("Attempting MQTT connection...");
         // Attempt to connect
-        if (client.connect("ESP32Client",mqtt_username)) {
+        if (client.connect(mqtt_clientID,mqtt_server,mqtt_password)) {
             Serial.println("connected");
             // Subscribe
             client.subscribe("hello");

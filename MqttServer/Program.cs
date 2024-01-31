@@ -56,8 +56,9 @@ static Task ClientMessageEvent(ApplicationMessageNotConsumedEventArgs args) {
 }
 
 static Task ClientConnectedEvent(ClientConnectedEventArgs args) {
-    Console.WriteLine("Client Connected! ");
+    Console.WriteLine("Client Connected!");
     Console.WriteLine(args.ClientId);
+    Console.WriteLine(args.Endpoint);
 
     return Task.CompletedTask;
 }
