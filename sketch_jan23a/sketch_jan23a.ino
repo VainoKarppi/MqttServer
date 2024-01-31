@@ -12,6 +12,9 @@ const char *ssid = "MB210-G";
 const char *password = "studentMAMK";
 
 const char *mqtt_server = "172.20.50.151";
+const int mqtt_port = 1234;
+const char* mqtt_username = "esp32-test-user";
+
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -30,18 +33,15 @@ void setup()
     if (ENABLEMQQT)
     {
         setup_wifi();
-        client.setServer(mqtt_server, 1234);
+        client.setServer(mqtt_server, mqtt_port);
         client.setCallback(callback);
     }
     dht.begin();
 }
 
-void loop()
-{
-    if (ENABLEMQQT)
-    {
-        if (!client.connected())
-        {
+void loop() {
+    if (ENABLEMQQT) {
+        if (!client.connected()) {
             reconnect();
         }
         client.loop();
@@ -135,14 +135,11 @@ void reconnect()
 
         Serial.print("Attempting MQTT connection...");
         // Attempt to connect
-        if (client.connect("ESP8266Client"))
-        {
+        if (client.connect("ESP32Client",mqtt_username)) {
             Serial.println("connected");
             // Subscribe
             client.subscribe("hello");
-        }
-        else
-        {
+        } else {
             Serial.print("failed, rc=");
             Serial.print(client.state());
             Serial.println(" try again in 5 seconds");
