@@ -3,9 +3,9 @@ using System;
 using MySqlConnector;
 
 static class Database {
-    public static string IP = "127.0.0.1";
-    public static string Username = "root";
-    public static string Password = "";
+    public static string IP = "karppi.dy.fi";
+    public static string Username = "test";
+    public static string Password = "test";
     public static string DatabaseName = "test";
     public static MySqlConnection? Connection;
 
@@ -17,7 +17,8 @@ static class Database {
         Connection.Open();
 
         using MySqlCommand command = new ($"CREATE DATABASE IF NOT EXISTS {DatabaseName}", Connection);
-        command.ExecuteNonQueryAsync();
+        if (command.ExecuteNonQuery() != 0)
+            Console.WriteLine($"Database not found, and new was created! ({DatabaseName})");
         
         Connection.ChangeDatabase(DatabaseName);
         
