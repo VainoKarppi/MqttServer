@@ -54,7 +54,7 @@ while (true) {
 
 
 
-static Task ClientMessageEvent(ApplicationMessageNotConsumedEventArgs args) {
+Task ClientMessageEvent(ApplicationMessageNotConsumedEventArgs args) {
     string topic = args.ApplicationMessage.Topic;
     string message = Encoding.UTF8.GetString(args.ApplicationMessage.PayloadSegment);
 
@@ -64,7 +64,7 @@ static Task ClientMessageEvent(ApplicationMessageNotConsumedEventArgs args) {
     return Task.CompletedTask;
 }
 
-static Task ClientConnectedEvent(ClientConnectedEventArgs args) {
+Task ClientConnectedEvent(ClientConnectedEventArgs args) {
     Console.WriteLine("Client Connected!");
     Console.WriteLine(args.ClientId);
     Console.WriteLine(args.Endpoint);
@@ -72,7 +72,7 @@ static Task ClientConnectedEvent(ClientConnectedEventArgs args) {
     return Task.CompletedTask;
 }
 
-static Task ClientDisconnectedEvent(ClientDisconnectedEventArgs args) {
+Task ClientDisconnectedEvent(ClientDisconnectedEventArgs args) {
     Console.WriteLine("Client disconnected!");
     Console.WriteLine(args.ClientId);
 
