@@ -5,11 +5,12 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <NoWarn>CS4014;1696</NoWarn>
+    <NoWarn>CS4014;1696;CS0260</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="MQTTnet" Version="4.3.3.952" />
+    <PackageReference Include="MySqlConnector" Version="2.3.5" />
   </ItemGroup>
 
 </Project>
