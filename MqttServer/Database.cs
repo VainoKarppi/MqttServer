@@ -1,5 +1,6 @@
 
 using System;
+using System.Data;
 using MySqlConnector;
 
 static class Database {
@@ -29,7 +30,7 @@ static class Database {
 
     public static bool IsConnectedToDatabase() {
         if (Connection is null) return false;
-        if (Connection.State != System.Data.ConnectionState.Open) return false;
+        if (Connection.State != ConnectionState.Open) return false;
 
         // Make sure database can be accessed using a simple query
         try {
@@ -39,6 +40,19 @@ static class Database {
         } catch (Exception) {
             return false;
         }
+    }
+
+    public static Task CreateTable() {
+        string tablename = "weatherdata";
+        using MySqlCommand command = new ($"CREATE TABLE IF NOT EXISTS {tablename} NULL, NULL", Connection);
+
+        return Task.CompletedTask;
+    }
+
+    public static Task CreateTables() {
+
+
+        return Task.CompletedTask;
     }
 
 }

@@ -95,7 +95,7 @@ void loop() {
     Serial.print("Average (array used): ");
     Serial.println(averageTemp);
 
-     // Convert the average temperature value to a char array and publish it to MQTT
+    // Convert the average temperature value to a char array and publish it to MQTT
     char tempString[8];
     dtostrf(averageTemp, 1, 2, tempString);
     client.publish("esp32/temperature", tempString);
