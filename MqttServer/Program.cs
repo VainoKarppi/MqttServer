@@ -6,6 +6,7 @@ using System.Text.Json;
 using MQTTnet.Packets;
 using MQTTnet.Client;
 using System.Text;
+using Microsoft.AspNetCore.Components;
 
 
 
@@ -22,6 +23,10 @@ using MqttServer Server = mqttFactory.CreateMqttServer(options);
 await Database.ConnectToDatabase();
 Console.WriteLine("Connected to database!");
 
+bool startApiThread = true;
+if (startApiThread) {
+    MqttServerAPI.StartAPIServer();
+}
 
 // Subscribe to all client messages
 Server.ApplicationMessageNotConsumedAsync += ClientMessageEvent;
