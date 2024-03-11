@@ -3,9 +3,12 @@ using System;
 using System.Data;
 using MySqlConnector;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.WebEncoders.Testing;
+using System.Threading.Tasks;
 
 static class MqttServerAPI {
     internal static WebApplication? WebApp = null;
+    private static readonly HttpClient ProxyClient = new();
     static MqttServerAPI() {
         WebApp = InitializeBuilder();
     }
@@ -34,6 +37,7 @@ static class MqttServerAPI {
     static void InitializePages(WebApplication app) {
         app.MapGet("/", async () => await HelloWorld());
         app.MapGet("/servertime", async () => await GetServerTime());
+        app.MapGet("/jsontest", () => GetJsonResult());
     }
 
     static async Task<string> HelloWorld() {
@@ -46,4 +50,13 @@ static class MqttServerAPI {
             return $"{DateTime.Now}";
         });
     }
+
+    static async Task<IResult> GetJsonResult() {
+        return await Task.Run(() => {
+            var data = new { Message = "asd" };
+            return Results.Json(data);
+        });
+    }
+
+
 }
