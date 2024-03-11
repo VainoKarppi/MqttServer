@@ -10,6 +10,9 @@ static class Database {
     private static readonly string Username = "test";
     private static readonly string Password = "test";
     private static readonly string DatabaseName = "test";
+
+
+    
     private static MySqlConnection? Connection;
 
 
