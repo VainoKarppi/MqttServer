@@ -40,14 +40,18 @@ static class MqttServerAPI {
         app.MapGet("/jsontest", () => GetJsonResult());
     }
 
-    static async Task<string> HelloWorld() {
+
+    //! ==================================
+    //!             WEB PAGES
+    //! ==================================
+    static async Task<IResult> HelloWorld() {
         return await Task.Run(() => {
-            return "Hello World";
+            return Results.Text("Hello World");
         });
     }
-    static async Task<string> GetServerTime() {
+    static async Task<IResult> GetServerTime() {
         return await Task.Run(() => {
-            return $"{DateTime.Now}";
+            return Results.Text($"{DateTime.Now}");
         });
     }
 
@@ -55,8 +59,7 @@ static class MqttServerAPI {
         return await Task.Run(() => {
             var data = new { Message = "asd" };
             return Results.Json(data);
-        });
+        }); 
     }
-
 
 }
