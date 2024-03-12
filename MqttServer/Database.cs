@@ -49,21 +49,43 @@ static class Database {
 
     public static async Task CreateTables() {
         string tableName = "weatherdata";
-        using MySqlCommand command = new ($@"CREATE TABLE IF NOT EXISTS {tableName} (
+        using MySqlCommand weatherdata = new ($@"CREATE TABLE IF NOT EXISTS {tableName} (
             Id INT AUTO_INCREMENT PRIMARY KEY,
             timestamp TIMESTAMP,
             humidity FLOAT NULL DEFAULT NULL,
             temperature FLOAT NULL DEFAULT NULL,
             wind FLOAT NULL DEFAULT NULL,
-            pressure FLOAT NULL DEFAULT NULL)
-        ", Connection);
+            pressure FLOAT NULL DEFAULT NULL
+        )", Connection);
+        await weatherdata.ExecuteNonQueryAsync();
 
-        await command.ExecuteNonQueryAsync();
+        tableName = "users";
+        using MySqlCommand users = new ($@"CREATE TABLE IF NOT EXISTS {tableName} (
+            Id INT AUTO_INCREMENT PRIMARY KEY,
+            username TEXT,
+            expiration TIMESTAMP,
+            token TEXT
+        )", Connection);
+        await users.ExecuteNonQueryAsync();
 
-        //TODO Create User table
         //TODO Create Logs table
     }
 
+    public static async Task<bool> CreateUser(string username, DateTime expiration, string token) {
+        string tableName = "users";
+        string insertDataSql = $"INSERT INTO {tableName} (username, expiration, token) VALUES (@username, @expiration, @token)";
+
+        using MySqlCommand command = new MySqlCommand(insertDataSql, Connection);
+        
+        command.Parameters.AddWithValue("@username", username);
+        command.Parameters.AddWithValue("@expiration", expiration);
+        command.Parameters.AddWithValue("@token", token);
+
+        int rowsChanged = await command.ExecuteNonQueryAsync();
+        if (rowsChanged == 0) throw new Exception("Unable to weather add data!");
+
+        return true;
+    }
 
 
     public static string GetAllWeatherData() {

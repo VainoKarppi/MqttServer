@@ -15,7 +15,7 @@ static class MqttServerAPI {
     }
 
 
-    // TODO Add tokens to database
+    // TODO READ tokens FROM database and check expiration time
     readonly static Dictionary<string, string> ApiTokens = new() {
         { "123456", "user1" },
         { "token2", "user2" }
@@ -51,6 +51,18 @@ static class MqttServerAPI {
 
             await next();
         });
+    }
+
+    public static string GenerateUserAndToken(string? username, string? expiration) {
+
+        if (string.IsNullOrWhiteSpace(username)) throw new InvalidDataException("Invalid username!");
+
+        DateTime expirationFinal = string.IsNullOrEmpty(expiration) ? DateTime.Now.AddYears(1) : DateTime.Now.AddDays(int.Parse(expiration));
+
+        string token = Guid.NewGuid().ToString();
+        Database.CreateUser(username,expirationFinal,token);
+
+        return token;
     }
 
     public static void StartAPIServer() {

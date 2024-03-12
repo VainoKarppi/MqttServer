@@ -38,7 +38,7 @@ await Server.StartAsync();
 Console.WriteLine("Server Started!");
 
 
-Console.WriteLine("\nCommands: Exit, Send\n");
+Console.WriteLine("\nCommands: Exit, Send, CreateToken\n");
 while (true) {
     try {
         string? input = Console.ReadLine()?.ToLower();
@@ -51,6 +51,15 @@ while (true) {
             Console.WriteLine("\nEnter payload: ");
             string? mode = Console.ReadLine();
             await SendData(topic, mode);
+        }
+
+        if (input == "createtoken") {
+            Console.WriteLine("\nEnter username: ");
+            string? username = Console.ReadLine();
+            Console.WriteLine("\nEnter expiration time in days (default is one year): ");
+            string? expiration = Console.ReadLine();
+            string token = MqttServerAPI.GenerateUserAndToken(username,expiration);
+            Console.WriteLine($"Your token is:\n{token}\n\nKEEP IT SAFE!\n");
         }
     } catch (Exception ex) {
         Console.WriteLine(ex.Message);
