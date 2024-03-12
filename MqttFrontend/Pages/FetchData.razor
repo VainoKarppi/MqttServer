@@ -9,44 +9,52 @@
 
 <h1>Weather data</h1>
 
-
-@if (!authorized) {
-    <p><em>You are not authorized!</em></p>
-
-    <p>Enter API key</p>
-    <InputText @bind-Value="ApiKey" />
-    <br><br>
-    <button class="btn btn-primary" @onclick="UpdateApiKey">Reload</button>
-    <br><br>
-    <p style="color: red;">@errorCode</p>
+@if (user is null && connecting) {
+    <p><em>Connecting...</em></p>
 } else {
-    <p><em>You are authorized!</em></p>
 
 
-    @if (forecasts == null) {
-        <p><em>Loading...</em></p>
+
+    @if (user is null) {
+        <p><em>You are not authorized!</em></p>
+        <p>Enter API URL</p>
+        <InputText @bind-Value="ApiUrl" />
+        <br><br>
+        <p>Enter API key</p>
+        <InputText @bind-Value="ApiKey" />
+        <br><br>
+        <button class="btn btn-primary" @onclick="UpdateAPIData">Connect</button>
+        <br><br>
+        <p style="color: red;">@errorCode</p>
     } else {
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Temp. (C)</th>
-                    <th>Temp. (F)</th>
-                    <th>Summary</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var forecast in forecasts)
-                {
+        <p><em>You are authorized!</em></p>
+
+
+        @if (forecasts == null) {
+            <p><em>Loading...</em></p>
+        } else {
+            <table class="table">
+                <thead>
                     <tr>
-                        <td>@forecast.Date.ToShortDateString()</td>
-                        <td>@forecast.TemperatureC</td>
-                        <td>@forecast.TemperatureF</td>
-                        <td>@forecast.Summary</td>
+                        <th>Date</th>
+                        <th>Temp. (C)</th>
+                        <th>Temp. (F)</th>
+                        <th>Summary</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var forecast in forecasts)
+                    {
+                        <tr>
+                            <td>@forecast.Date.ToShortDateString()</td>
+                            <td>@forecast.TemperatureC</td>
+                            <td>@forecast.TemperatureF</td>
+                            <td>@forecast.Summary</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
     }
 }
 
@@ -54,29 +62,58 @@
 
 @code {
     private WeatherForecast[]? forecasts;
-    private bool authorized = false;
-    private string? ApiKey;
+    private AuthenticationService.User? user;
+    private bool disableButton = true;
+    private bool connecting = true;
+    private string? ApiKey = AuthenticationService.Token;
+    private string ApiUrl = "http://localhost:5000";
     private string errorCode = "";
 
+    
     protected override async Task OnInitializedAsync() {
-        if (ApiKey is null) return;
-        Console.WriteLine(ApiKey);
-        authorized = await AuthenticationService.Authorized(ApiKey);
-        forecasts = await ForecastService.GetForecastAsync();
+        try {
+            user = await AuthenticationService.Authorized()!;
+            forecasts = await ForecastService.GetForecastAsync();
+        } catch (Exception ex) {
+            errorCode = ex.Message;
+        }
+        connecting = false;
     }
-    protected override void OnAfterRender(bool firstRender) {
-        Console.WriteLine(ApiKey);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender) return;
+        try {
+            forecasts = await ForecastService.GetForecastAsync();
+        } catch (Exception ex) {
+            errorCode = ex.Message; 
+        }
     }
 
     
+    private async Task UpdateAPIData() {
+        try {
+            connecting = true;
+            await UpdateApiURL();
+            await UpdateApiKey();
+            user = await AuthenticationService.Authorized()!;
+        } catch (Exception ex) {
+            errorCode = ex.Message; 
+        }
+        connecting = false;
+        StateHasChanged();
+    }
     private async Task UpdateApiKey() {
-        if (ApiKey is null || ApiKey.Length != 6) {
+        if (ApiKey is null || ApiKey.Length != 36) {
             errorCode = "Invalid API key!";
             return;
         }
-        AuthenticationService.UpdateApiKey(ApiKey);
-        authorized = await AuthenticationService.Authorized(ApiKey);
-        forecasts = await ForecastService.GetForecastAsync();
-        StateHasChanged();
+        await AuthenticationService.UpdateApiKey(ApiKey);
+    }
+    private async Task UpdateApiURL() {
+        if (string.IsNullOrWhiteSpace(ApiUrl)) {
+            errorCode = "Invalid API URL!";
+            return;
+        }
+        await AuthenticationService.UpdateApiUrl(ApiUrl);
     }
 }

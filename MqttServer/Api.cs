@@ -17,7 +17,7 @@ static class MqttServerAPI {
 
     // TODO READ tokens FROM database and check expiration time
     readonly static Dictionary<string, string> ApiTokens = new() {
-        { "123456", "user1" },
+        { "6dc3017d-0458-4312-ac46-43bc4d137561", "user1" },
         { "token2", "user2" }
     };
 
@@ -80,7 +80,13 @@ static class MqttServerAPI {
     }
 
     static void InitializePages(WebApplication app) {
-        app.MapGet("/", (HttpContext context) => { return context.Response.WriteAsync("Hello, " + context.Items["user"]); });
+        app.MapGet("/", async (HttpContext context) => {
+            IResult result = await Pages.AuthenticateUser();
+            Console.WriteLine(result);
+            return context.Response.WriteAsJsonAsync(result);
+            return context.Response.WriteAsync("Hello, " + context.Items["user"]);
+        });
+        app.MapGet("/authenticate", async () => await Pages.AuthenticateUser());
         app.MapGet("/servertime", async () => await Pages.GetServerTime());
         app.MapGet("/jsontest", () => Pages.GetJsonResult());
         app.MapGet("/getAllWeatherData", () => Database.GetAllWeatherData());
@@ -94,7 +100,18 @@ static class MqttServerAPI {
     //! ==================================
 
     protected static class Pages {
-
+        internal static async Task<IResult> AuthenticateUser() {
+            return await Task.Run(() => {
+                var data = new Database.User {
+                    Id = 1,
+                    Username = "asd",
+                    Expiration = DateTime.Now.AddDays(2),
+                    Token = "6dc3017d-0458-4312-ac46-43bc4d137561"
+                };
+                Console.WriteLine(data.Token);
+                return Results.Json(data);
+            }); 
+        }
         internal static async Task<IResult> GetServerTime() {
             return await Task.Run(() => {
                 return Results.Text($"{DateTime.Now}");
