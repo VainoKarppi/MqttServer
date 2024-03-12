@@ -3,8 +3,8 @@
 #include <Wire.h>
 #include "DHT.h"
 
-#define DHTTYPE DHT22
-#define DHTPIN 4
+#define DHTTYPE DHT11 // temp/moist sensor type
+#define DHTPIN 27     // temp/moist sensor data pin(middle)
 
 const char* ssid = "PIENKONE";
 const char* password = "12345679";
@@ -64,10 +64,17 @@ void setup() {
 }
 
 void loop() {
+<<<<<<< HEAD
   if (!client.connected()) {
     reconnect();
   }
   client.loop();
+=======
+    if (!client.connected()) {
+        reconnect();
+    }
+    client.loop();
+>>>>>>> 82e2885d0308caf80594207ffc7797db9ad3f10e
 
     // Variable for measured temperature
     float measuredTemp = 0.0;
@@ -76,6 +83,7 @@ void loop() {
     float h = dht.readHumidity();
     measuredTemp = dht.readTemperature();
 
+<<<<<<< HEAD
   Serial.print(F("Humidity: "));
   Serial.print(h);
   Serial.print(F("%  Temperature: "));
@@ -88,6 +96,32 @@ void loop() {
   Serial.print("Message sent: ");
   Serial.println(message);
   delay(5000);
+=======
+    Serial.print(F("Humidity: "));
+    Serial.print(h);
+    Serial.print(F("%  Temperature: "));
+    Serial.print(measuredTemp);
+    Serial.println();
+
+    // Variable for average temperature
+    float averageTemp = 0.0;
+
+    // Add measurement to list, calculate average temp and send it to mqtt
+    addMeasurement(measuredTemp);
+    averageTemp = calculateAverage();
+
+    // Print measured temperature to serial console
+    Serial.print("Average (array used): ");
+    Serial.println(averageTemp);
+
+     // Convert the average temperature value to a char array and publish it to MQTT
+    char tempString[8];
+    dtostrf(averageTemp, 1, 2, tempString);
+    client.publish("esp32/temperature", tempString);
+
+
+    delay(5000);
+>>>>>>> 82e2885d0308caf80594207ffc7797db9ad3f10e
 }
 
 void setup_wifi() {
