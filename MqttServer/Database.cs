@@ -87,6 +87,21 @@ static class Database {
         return true;
     }
 
+
+    public static async Task<bool> DeleteUser(string token) {
+        string tableName = "users";
+        string insertDataSql = $"DELETE FROM {tableName} WHERE token=@token";
+
+        using MySqlCommand command = new MySqlCommand(insertDataSql, Connection);
+    
+        command.Parameters.AddWithValue("@token", token);
+
+        int rowsChanged = await command.ExecuteNonQueryAsync();
+        if (rowsChanged == 0) throw new Exception($"Unable to delete user! {token}");
+
+        return true;
+    }
+
     public static async Task<User?> GetUserByToken(string token) {
         string tableName = "users";
         string insertDataSql = $"SELECT * FROM {tableName} WHERE token=@token";
