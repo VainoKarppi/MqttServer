@@ -63,7 +63,6 @@
 @code {
     private WeatherForecast[]? forecasts;
     private AuthenticationService.User? user;
-    private bool disableButton = true;
     private bool connecting = true;
     private string? ApiKey = AuthenticationService.Token;
     private string ApiUrl = "http://localhost:5000";
@@ -80,6 +79,10 @@
         connecting = false;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstrender) {
+        if (!firstrender && forecasts is null) forecasts = await ForecastService.GetForecastAsync();
+    }
+
     
     private async Task UpdateAPIData() {
         try {
@@ -94,17 +97,11 @@
         StateHasChanged();
     }
     private async Task UpdateApiKey() {
-        if (ApiKey is null || ApiKey.Length != 36) {
-            errorCode = "Invalid API key!";
-            return;
-        }
+        if (ApiKey is null || ApiKey.Length != 36) throw new Exception("Invalid API key!");
         await AuthenticationService.UpdateApiKey(ApiKey);
     }
     private async Task UpdateApiURL() {
-        if (string.IsNullOrWhiteSpace(ApiUrl)) {
-            errorCode = "Invalid API URL!";
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(ApiUrl)) throw new Exception("Invalid API URL!");
         await AuthenticationService.UpdateApiUrl(ApiUrl);
     }
 }

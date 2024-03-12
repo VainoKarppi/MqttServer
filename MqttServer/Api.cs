@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.WebEncoders.Testing;
 using System.Threading.Tasks;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 
 
 static class MqttServerAPI {
@@ -21,6 +23,13 @@ static class MqttServerAPI {
         var builder = WebApplication.CreateBuilder();
         var app = builder.Build();
         
+        var urlHttp = builder.Configuration.GetValue<string>("Kestrel:Endpoints:Http:Url");
+        if (urlHttp != null) Console.WriteLine($"\nAPI Server is running on address {urlHttp}");
+
+        var urlHttps = builder.Configuration.GetValue<string>("Kestrel:Endpoints:Https:Url");
+        if (urlHttps != null) Console.WriteLine($"API Server is running on address {urlHttps}\n");
+        
+
         AddAuthorization(app);
         InitializePages(app);
         return app;
@@ -68,7 +77,6 @@ static class MqttServerAPI {
             if (WebApp is null) return;
             await WebApp.RunAsync();
         }).Start();
-        Console.WriteLine("Started API server!");
     }
 
     public static void StopAPIServer() {

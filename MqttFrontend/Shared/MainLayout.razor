@@ -1,4 +1,7 @@
 ﻿@inherits LayoutComponentBase
+@using MqttFrontend.Data
+@inject AuthenticationService AuthenticationService
+@inject NavigationManager Navigation
 
 <PageTitle>MqttFrontend</PageTitle>
 
@@ -9,6 +12,7 @@
 
     <main>
         <div class="top-row px-4">
+            <button class="btn btn-primary" @onclick="Logout">Logout</button>
             <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
         </div>
 
@@ -17,3 +21,11 @@
         </article>
     </main>
 </div>
+
+@code {
+
+    public void Logout() {
+        AuthenticationService.Token = "";
+        Navigation.NavigateTo("/");
+    }
+}
