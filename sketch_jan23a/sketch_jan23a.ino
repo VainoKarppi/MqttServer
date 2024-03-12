@@ -1,7 +1,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <Wire.h>
-#include "DHT.h"
+#include <DHT.h>
 
 #define DHTTYPE DHT11 // temp/moist sensor type
 #define DHTPIN 27     // temp/moist sensor data pin(middle)
