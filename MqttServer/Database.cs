@@ -68,6 +68,8 @@ static class Database {
         )", Connection);
         await users.ExecuteNonQueryAsync();
 
+        
+
         //TODO Create Logs table
     }
 
