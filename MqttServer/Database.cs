@@ -87,6 +87,33 @@ static class Database {
         return true;
     }
 
+    public static async Task<User?> GetUserByToken(string token) {
+        string tableName = "users";
+        string insertDataSql = $"SELECT * FROM {tableName} WHERE token=@token";
+        using MySqlCommand command = new MySqlCommand(insertDataSql, Connection);
+
+        command.Parameters.AddWithValue("@token", token);
+
+        using MySqlDataReader reader = await command.ExecuteReaderAsync();
+
+        User user = new();
+
+        while (reader.Read()) {
+            user.Id = (int)reader["id"];
+            user.Username = (string)reader["username"];
+            user.Expiration = (DateTime)reader["expiration"];
+            user.Token = (string)reader["token"];
+
+            Console.WriteLine($"User found: {reader["Username"]}, {reader["Token"]}");
+        }
+
+        // TODO check the ecpect validation
+        if (user is null || user.Id is null) throw new KeyNotFoundException("User not found!");
+        if (DateTime.Now > user.Expiration) throw new UnauthorizedAccessException("User token has expired!");
+
+        return user;
+    }
+
 
     public static string GetAllWeatherData() {
         return "{RETURNED AS YEISON}";
@@ -110,4 +137,14 @@ static class Database {
         return true;
     }
 
+
+
+
+
+    public class User {
+        public int? Id;
+        public string? Username;
+        public DateTime? Expiration;
+        public string? Token;
+    }
 }
