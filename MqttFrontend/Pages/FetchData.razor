@@ -62,7 +62,7 @@
         if (ApiKey is null) return;
         Console.WriteLine(ApiKey);
         authorized = await AuthenticationService.Authorized(ApiKey);
-        forecasts = await ForecastService.GetForecastAsync(DateOnly.FromDateTime(DateTime.Now));
+        forecasts = await ForecastService.GetForecastAsync();
     }
     protected override void OnAfterRender(bool firstRender) {
         Console.WriteLine(ApiKey);

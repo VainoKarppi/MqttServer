@@ -13,12 +13,44 @@ static class MqttServerAPI {
     static MqttServerAPI() {
         WebApp = InitializeBuilder();
     }
+
+
+    // TODO Add tokens to database
+    readonly static Dictionary<string, string> ApiTokens = new() {
+        { "123456", "user1" },
+        { "token2", "user2" }
+    };
+
     
     static WebApplication InitializeBuilder() {
         var builder = WebApplication.CreateBuilder();
         var app = builder.Build();
+        
+        AddAuthorization(app);
         InitializePages(app);
         return app;
+    }
+
+    private static void AddAuthorization(WebApplication app) {
+        app.Use(async (context, next) => {
+            if (!context.Request.Headers.TryGetValue("Authorization", out var authHeader)) {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsync("Authorization header is missing.");
+                return;
+            }
+
+            var token = authHeader.ToString().Split(" ").LastOrDefault();
+            if (string.IsNullOrEmpty(token) || !ApiTokens.ContainsKey(token)) {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.WriteAsync("Invalid or missing API token.");
+                return;
+            }
+
+            // Add user information to the request context
+            context.Items["user"] = ApiTokens[token];
+
+            await next();
+        });
     }
 
     public static void StartAPIServer() {
@@ -36,7 +68,7 @@ static class MqttServerAPI {
     }
 
     static void InitializePages(WebApplication app) {
-        app.MapGet("/", async () => await Pages.HelloWorld());
+        app.MapGet("/", (HttpContext context) => { return context.Response.WriteAsync("Hello, " + context.Items["user"]); });
         app.MapGet("/servertime", async () => await Pages.GetServerTime());
         app.MapGet("/jsontest", () => Pages.GetJsonResult());
         app.MapGet("/getAllWeatherData", () => Database.GetAllWeatherData());
@@ -51,11 +83,6 @@ static class MqttServerAPI {
 
     protected static class Pages {
 
-        internal static async Task<IResult> HelloWorld() {
-            return await Task.Run(() => {
-                return Results.Text("Hello World");
-            });
-        }
         internal static async Task<IResult> GetServerTime() {
             return await Task.Run(() => {
                 return Results.Text($"{DateTime.Now}");
