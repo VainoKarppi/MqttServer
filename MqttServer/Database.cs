@@ -6,7 +6,7 @@ using MySqlConnector;
 static class Database {
 
     //TODO Add these values to environment config
-    private static readonly string IP = "192.168.1.3";
+    private static readonly string IP = "karppi.dy.fi";
     private static readonly string Username = "test";
     private static readonly string Password = "test";
     private static readonly string DatabaseName = "test";
