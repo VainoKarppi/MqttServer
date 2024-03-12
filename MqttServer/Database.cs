@@ -79,12 +79,11 @@ static class Database {
         return "{RETURNED AS YEISON}";
     }
 
-    public static void AddWeatherData() {
+    public static void AddWeatherData(float? humidity, float? temperature, float? wind, float? pressure) {
         string tableName = "weatherdata";
-        string insertDataSql = $"INSERT INTO {tableName} (timestamp, humidity, temperature) VALUES (@timestamp, @humidity, @temperature)";
+        string insertDataSql = $"INSERT INTO {tableName} (timestamp, humidity, temperature, wind, pressure) VALUES (@timestamp, @humidity, @temperature, @wind, @pressure)";
+
         DateTime timestamp = DateTime.Now;
-        float humidity = 50.5f;
-        float temperature = 25.0f;
 
 
         using MySqlCommand command = new MySqlCommand(insertDataSql, Connection);
@@ -92,6 +91,8 @@ static class Database {
         command.Parameters.AddWithValue("@timestamp", timestamp);
         command.Parameters.AddWithValue("@humidity", humidity);
         command.Parameters.AddWithValue("@temperature", temperature);
+        command.Parameters.AddWithValue("@wind", wind);
+        command.Parameters.AddWithValue("@pressure", pressure);
 
         int rowsChanged = command.ExecuteNonQuery();
         if (rowsChanged == 0) throw new Exception("Unable to weather add data!");
