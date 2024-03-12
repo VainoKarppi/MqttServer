@@ -75,7 +75,8 @@ static class Database {
             user_id INT,
             timestamp TIMESTAMP,
             code INT NULL DEFAULT NULL,
-            message TEXT NULL DEFAULT NULL
+            message TEXT NULL DEFAULT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(Id)
         )", Connection);
         await logs.ExecuteNonQueryAsync();
     }
