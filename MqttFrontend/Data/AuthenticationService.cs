@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -32,9 +33,7 @@ public class AuthenticationService {
     public static string? Token;
     private static string AppSettingsPath = "appsettings.json";
 
-    public async Task<User?>? Authorized() {
-        Console.WriteLine($"CONNECTING: {ApiUrl + "authenticate"} : {Token}");
-
+    public async Task<User> Authenticate() {
         using HttpClient client = new();
 
         client.DefaultRequestHeaders.Add("Authorization", "Bearer " + Token);
@@ -43,11 +42,21 @@ public class AuthenticationService {
         if (!response.IsSuccessStatusCode) throw new UnauthorizedAccessException("Invalid credientials");
 
         // Read response content
-        string responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine(responseBody);
+        string responseData = await response.Content.ReadAsStringAsync();
 
-        throw new NotImplementedException("test");
-        return new User(); //TODO
+        if (responseData == "{}" || responseData == "") throw new Exception("Server error!");
+
+        JsonObject jobject = JsonNode.Parse(responseData)!.AsObject();
+
+        User user = new() {
+            Id = (int)jobject["id"]!,
+            Username = (string)jobject["username"]!,
+            Expiration = (DateTime)jobject["expiration"]!,
+            Token = (string)jobject["token"]!
+        };
+        if (user.Id is null || user.Username is null || user.Expiration is null || user.Token is null) throw new ValidationException($"User data corrupt: {responseData}");
+
+        return user;
     }
 
 
@@ -96,9 +105,9 @@ public class AuthenticationService {
 
 
     public class User {
-        public int? Id;
-        public string? Username;
-        public DateTime? Expiration;
-        public string? Token;
+        public int? Id { get; set; }
+        public string? Username { get; set; }
+        public DateTime? Expiration { get; set; }
+        public string? Token { get; set; }
     }
 }

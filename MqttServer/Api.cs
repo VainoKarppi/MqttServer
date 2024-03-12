@@ -5,21 +5,16 @@ using MySqlConnector;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.WebEncoders.Testing;
 using System.Threading.Tasks;
+using System.Text.Json;
 
 
 static class MqttServerAPI {
     internal static WebApplication? WebApp = null;
-    private static readonly HttpClient ProxyClient = new();
     static MqttServerAPI() {
         WebApp = InitializeBuilder();
     }
 
 
-    // TODO READ tokens FROM database and check expiration time
-    readonly static Dictionary<string, string> ApiTokens = new() {
-        { "6dc3017d-0458-4312-ac46-43bc4d137561", "user1" },
-        { "token2", "user2" }
-    };
 
     
     static WebApplication InitializeBuilder() {
@@ -39,12 +34,9 @@ static class MqttServerAPI {
                 return;
             }
 
-            //Todo, change this to database format.
-
             
             var token = authHeader.ToString().Split(" ").LastOrDefault();
             Database.User? user = await Database.GetUserByToken(token!);
-
 
             if (string.IsNullOrEmpty(token) || user is null) {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
@@ -53,7 +45,7 @@ static class MqttServerAPI {
             }
 
             // Add user information to the request context
-            context.Items["user"] = ApiTokens[token];
+            context.Items["user"] = user;
 
             await next();
         });
@@ -86,30 +78,23 @@ static class MqttServerAPI {
     }
 
     static void InitializePages(WebApplication app) {
-        app.MapGet("/", async (HttpContext context) => {
-            IResult result = await Pages.AuthenticateUser();
-            Console.WriteLine(result);
-            return context.Response.WriteAsJsonAsync(result);
-            return context.Response.WriteAsync("Hello, " + context.Items["user"]);
+        app.MapGet("/", (HttpContext context) => {return context.Response.WriteAsync("Hello, " + context.Items["user"]); });
+        app.MapGet("/authenticate", (HttpContext context) => {
+            var user = (Database.User)context.Items["user"]!;
+
+            var returnData = new {user.Id,user.Username,user.Expiration,user.Token};  
+        
+            return Results.Json(returnData);
+
         });
-        app.MapGet("/authenticate", async () => await Pages.AuthenticateUser());
         app.MapGet("/servertime", async () => await Pages.GetServerTime());
         app.MapGet("/jsontest", () => Pages.GetJsonResult());
         app.MapGet("/getAllWeatherData", () => Database.GetAllWeatherData());
     }
 
-//Is token valid
-
-    static bool IsTokenValid(string token) {
-        if (Database.GetUserByToken(token) == null){
-            return true;
-        }
-
-        return false;
-    }
 
 
-    
+
     
 
     //! ==================================

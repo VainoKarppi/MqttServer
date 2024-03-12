@@ -69,8 +69,15 @@ static class Database {
         await users.ExecuteNonQueryAsync();
 
         
-
-        //TODO Create Logs table
+        tableName = "logs";
+        using MySqlCommand logs = new ($@"CREATE TABLE IF NOT EXISTS {tableName} (
+            Id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT,
+            timestamp TIMESTAMP,
+            code INT NULL DEFAULT NULL,
+            message TEXT NULL DEFAULT NULL
+        )", Connection);
+        await logs.ExecuteNonQueryAsync();
     }
 
     public static async Task<bool> CreateUser(string username, DateTime expiration, string token) {
@@ -120,8 +127,6 @@ static class Database {
             user.Username = (string)reader["username"];
             user.Expiration = (DateTime)reader["expiration"];
             user.Token = (string)reader["token"];
-
-            Console.WriteLine($"User found: {reader["Username"]}, {reader["Token"]}");
         }
 
         // TODO check the ecpect validation
@@ -132,9 +137,20 @@ static class Database {
     }
 
 
+    // TODO
     public static string GetAllWeatherData() {
         return "{RETURNED AS YEISON}";
     }
+
+    // TODO Get weatherdata within timeframe
+
+    // TODO Get single weather data by id
+
+    // TODO Add log message
+
+    // TODO get all log messages
+
+    // TODO get all log messages by client + additional time option
 
     public static async Task<bool> AddWeatherData(float? humidity, float? temperature, float? wind, float? pressure) {
         string tableName = "weatherdata";
@@ -159,9 +175,9 @@ static class Database {
 
 
     public class User {
-        public int? Id;
-        public string? Username;
-        public DateTime? Expiration;
-        public string? Token;
+        public int? Id { get; set; }
+        public string? Username { get; set; }
+        public DateTime? Expiration { get; set; }
+        public string? Token { get; set; }
     }
 }

@@ -11,51 +11,51 @@
 
 @if (user is null && connecting) {
     <p><em>Connecting...</em></p>
+    return;
+}
+
+@if (user is null) {
+    <p><em>You are not authorized!</em></p>
+    <p>Enter API URL</p>
+    <InputText @bind-Value="ApiUrl" />
+    <br><br>
+    <p>Enter API key</p>
+    <InputText @bind-Value="ApiKey" />
+    <br><br>
+    <button class="btn btn-primary" @onclick="UpdateAPIData">Connect</button>
+    <br><br>
+    <p style="color: red;">@errorCode</p>
+
+    return;
+}
+
+<p><em>You are authorized!</em></p>
+
+
+@if (forecasts == null) {
+    <p><em>Loading...</em></p>
 } else {
-
-
-
-    @if (user is null) {
-        <p><em>You are not authorized!</em></p>
-        <p>Enter API URL</p>
-        <InputText @bind-Value="ApiUrl" />
-        <br><br>
-        <p>Enter API key</p>
-        <InputText @bind-Value="ApiKey" />
-        <br><br>
-        <button class="btn btn-primary" @onclick="UpdateAPIData">Connect</button>
-        <br><br>
-        <p style="color: red;">@errorCode</p>
-    } else {
-        <p><em>You are authorized!</em></p>
-
-
-        @if (forecasts == null) {
-            <p><em>Loading...</em></p>
-        } else {
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Temp. (C)</th>
-                        <th>Temp. (F)</th>
-                        <th>Summary</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var forecast in forecasts)
-                    {
-                        <tr>
-                            <td>@forecast.Date.ToShortDateString()</td>
-                            <td>@forecast.TemperatureC</td>
-                            <td>@forecast.TemperatureF</td>
-                            <td>@forecast.Summary</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-    }
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Temp. (C)</th>
+                <th>Temp. (F)</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var forecast in forecasts)
+            {
+                <tr>
+                    <td>@forecast.Date.ToShortDateString()</td>
+                    <td>@forecast.TemperatureC</td>
+                    <td>@forecast.TemperatureF</td>
+                    <td>@forecast.Summary</td>
+                </tr>
+            }
+        </tbody>
+    </table>
 }
 
 
@@ -72,21 +72,12 @@
     
     protected override async Task OnInitializedAsync() {
         try {
-            user = await AuthenticationService.Authorized()!;
+            user = await AuthenticationService.Authenticate()!;
             forecasts = await ForecastService.GetForecastAsync();
         } catch (Exception ex) {
             errorCode = ex.Message;
         }
         connecting = false;
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender) {
-        if (firstRender) return;
-        try {
-            forecasts = await ForecastService.GetForecastAsync();
-        } catch (Exception ex) {
-            errorCode = ex.Message; 
-        }
     }
 
     
@@ -95,7 +86,7 @@
             connecting = true;
             await UpdateApiURL();
             await UpdateApiKey();
-            user = await AuthenticationService.Authorized()!;
+            user = await AuthenticationService.Authenticate()!;
         } catch (Exception ex) {
             errorCode = ex.Message; 
         }
