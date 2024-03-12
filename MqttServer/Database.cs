@@ -16,22 +16,19 @@ static class Database {
     private static MySqlConnection? Connection;
 
 
-    public static Task ConnectToDatabase() {
+    public static async Task ConnectToDatabase() {
         string connectionString = $"server={IP};uid={Username};pwd={Password}";
 
         Connection = new MySqlConnection(connectionString);
-        Connection.Open();
+        await Connection.OpenAsync();
 
         using MySqlCommand command = new ($"CREATE DATABASE IF NOT EXISTS {DatabaseName}", Connection);
         if (command.ExecuteNonQuery() != 0)
             Console.WriteLine($"Database not found, and new was created! ({DatabaseName})");
         
-        Connection.ChangeDatabase(DatabaseName);
+        await Connection.ChangeDatabaseAsync(DatabaseName);
 
-
-        CreateTables();
-        
-        return Task.CompletedTask;
+        await CreateTables();
     }
 
     public static bool IsConnectedToDatabase() {
@@ -48,14 +45,9 @@ static class Database {
         }
     }
 
-    public static Task CreateTable() {
-        string tablename = "weatherdata";
-        using MySqlCommand command = new ($"CREATE TABLE IF NOT EXISTS {tablename} NULL, NULL", Connection);
 
-        return Task.CompletedTask;
-    }
 
-    public static Task CreateTables() {
+    public static async Task CreateTables() {
         string tableName = "weatherdata";
         using MySqlCommand command = new ($@"CREATE TABLE IF NOT EXISTS {tableName} (
             Id INT AUTO_INCREMENT PRIMARY KEY,
@@ -66,10 +58,10 @@ static class Database {
             pressure FLOAT NULL DEFAULT NULL)
         ", Connection);
 
-        command.ExecuteNonQuery();
+        await command.ExecuteNonQueryAsync();
 
-        
-        return Task.CompletedTask;
+        //TODO Create User table
+        //TODO Create Logs table
     }
 
 
