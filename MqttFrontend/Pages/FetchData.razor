@@ -1,0 +1,82 @@
+﻿@page "/fetchdata"
+@using Microsoft.AspNetCore.Components.Forms
+@using MqttFrontend.Data
+@using System
+@inject WeatherForecastService ForecastService
+@inject AuthenticationService AuthenticationService
+
+<PageTitle>Weather forecast</PageTitle>
+
+<h1>Weather data</h1>
+
+
+@if (!authorized) {
+    <p><em>You are not authorized!</em></p>
+
+    <p>Enter API key</p>
+    <InputText @bind-Value="ApiKey" />
+    <br><br>
+    <button class="btn btn-primary" @onclick="UpdateApiKey">Reload</button>
+    <br><br>
+    <p style="color: red;">@errorCode</p>
+} else {
+    <p><em>You are authorized!</em></p>
+
+
+    @if (forecasts == null) {
+        <p><em>Loading...</em></p>
+    } else {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Temp. (C)</th>
+                    <th>Temp. (F)</th>
+                    <th>Summary</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var forecast in forecasts)
+                {
+                    <tr>
+                        <td>@forecast.Date.ToShortDateString()</td>
+                        <td>@forecast.TemperatureC</td>
+                        <td>@forecast.TemperatureF</td>
+                        <td>@forecast.Summary</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+
+
+@code {
+    private WeatherForecast[]? forecasts;
+    private bool authorized = false;
+    private string? ApiKey;
+    private string errorCode = "";
+
+    protected override async Task OnInitializedAsync() {
+        if (ApiKey is null) return;
+        Console.WriteLine(ApiKey);
+        authorized = await AuthenticationService.Authorized(ApiKey);
+        forecasts = await ForecastService.GetForecastAsync();
+    }
+    protected override void OnAfterRender(bool firstRender) {
+        Console.WriteLine(ApiKey);
+    }
+
+    
+    private async Task UpdateApiKey() {
+        if (ApiKey is null || ApiKey.Length != 6) {
+            errorCode = "Invalid API key!";
+            return;
+        }
+        AuthenticationService.UpdateApiKey(ApiKey);
+        authorized = await AuthenticationService.Authorized(ApiKey);
+        forecasts = await ForecastService.GetForecastAsync();
+        StateHasChanged();
+    }
+}
