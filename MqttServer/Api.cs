@@ -39,8 +39,14 @@ static class MqttServerAPI {
                 return;
             }
 
+            //Todo, change this to database format.
+
+            
             var token = authHeader.ToString().Split(" ").LastOrDefault();
-            if (string.IsNullOrEmpty(token) || !ApiTokens.ContainsKey(token)) {
+            Database.User? user = await Database.GetUserByToken(token!);
+
+
+            if (string.IsNullOrEmpty(token) || user is null) {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 await context.Response.WriteAsync("Invalid or missing API token.");
                 return;
@@ -92,7 +98,18 @@ static class MqttServerAPI {
         app.MapGet("/getAllWeatherData", () => Database.GetAllWeatherData());
     }
 
+//Is token valid
 
+    static bool IsTokenValid(string token) {
+        if (Database.GetUserByToken(token) == null){
+            return true;
+        }
+
+        return false;
+    }
+
+
+    
     
 
     //! ==================================
