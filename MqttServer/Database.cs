@@ -69,7 +69,6 @@ static class Database {
         command.ExecuteNonQuery();
 
         
-
         return Task.CompletedTask;
     }
 
@@ -79,23 +78,22 @@ static class Database {
         return "{RETURNED AS YEISON}";
     }
 
-    public static void AddWeatherData(float? humidity, float? temperature, float? wind, float? pressure) {
+    public static async Task<bool> AddWeatherData(float? humidity, float? temperature, float? wind, float? pressure) {
         string tableName = "weatherdata";
         string insertDataSql = $"INSERT INTO {tableName} (timestamp, humidity, temperature, wind, pressure) VALUES (@timestamp, @humidity, @temperature, @wind, @pressure)";
 
-        DateTime timestamp = DateTime.Now;
-
-
         using MySqlCommand command = new MySqlCommand(insertDataSql, Connection);
 
-        command.Parameters.AddWithValue("@timestamp", timestamp);
+        command.Parameters.AddWithValue("@timestamp", DateTime.Now);
         command.Parameters.AddWithValue("@humidity", humidity);
         command.Parameters.AddWithValue("@temperature", temperature);
         command.Parameters.AddWithValue("@wind", wind);
         command.Parameters.AddWithValue("@pressure", pressure);
 
-        int rowsChanged = command.ExecuteNonQuery();
+        int rowsChanged = await command.ExecuteNonQueryAsync();
         if (rowsChanged == 0) throw new Exception("Unable to weather add data!");
+
+        return true;
     }
 
 }
