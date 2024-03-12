@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.WebEncoders.Testing;
 using System.Threading.Tasks;
 
+
 static class MqttServerAPI {
     internal static WebApplication? WebApp = null;
     private static readonly HttpClient ProxyClient = new();
@@ -35,31 +36,39 @@ static class MqttServerAPI {
     }
 
     static void InitializePages(WebApplication app) {
-        app.MapGet("/", async () => await HelloWorld());
-        app.MapGet("/servertime", async () => await GetServerTime());
-        app.MapGet("/jsontest", () => GetJsonResult());
+        app.MapGet("/", async () => await Pages.HelloWorld());
+        app.MapGet("/servertime", async () => await Pages.GetServerTime());
+        app.MapGet("/jsontest", () => Pages.GetJsonResult());
+        app.MapGet("/getAllWeatherData", () => Database.GetAllWeatherData());
     }
 
+
+    
 
     //! ==================================
     //!             WEB PAGES
     //! ==================================
-    static async Task<IResult> HelloWorld() {
-        return await Task.Run(() => {
-            return Results.Text("Hello World");
-        });
-    }
-    static async Task<IResult> GetServerTime() {
-        return await Task.Run(() => {
-            return Results.Text($"{DateTime.Now}");
-        });
-    }
 
-    static async Task<IResult> GetJsonResult() {
-        return await Task.Run(() => {
-            var data = new { Message = "asd" };
-            return Results.Json(data);
-        }); 
+    protected static class Pages {
+
+        internal static async Task<IResult> HelloWorld() {
+            return await Task.Run(() => {
+                return Results.Text("Hello World");
+            });
+        }
+        internal static async Task<IResult> GetServerTime() {
+            return await Task.Run(() => {
+                return Results.Text($"{DateTime.Now}");
+            });
+        }
+
+        internal static async Task<IResult> GetJsonResult() {
+            return await Task.Run(() => {
+                var data = new { Message = "asd" };
+                return Results.Json(data);
+            }); 
+        }
+
     }
 
 }

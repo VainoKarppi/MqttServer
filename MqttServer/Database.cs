@@ -27,6 +27,9 @@ static class Database {
             Console.WriteLine($"Database not found, and new was created! ({DatabaseName})");
         
         Connection.ChangeDatabase(DatabaseName);
+
+
+        CreateTables();
         
         return Task.CompletedTask;
     }
@@ -53,9 +56,45 @@ static class Database {
     }
 
     public static Task CreateTables() {
+        string tableName = "weatherdata";
+        using MySqlCommand command = new ($@"CREATE TABLE IF NOT EXISTS {tableName} (
+            Id INT AUTO_INCREMENT PRIMARY KEY,
+            timestamp TIMESTAMP,
+            humidity FLOAT NULL DEFAULT NULL,
+            temperature FLOAT NULL DEFAULT NULL,
+            wind FLOAT NULL DEFAULT NULL,
+            pressure FLOAT NULL DEFAULT NULL)
+        ", Connection);
 
+        command.ExecuteNonQuery();
+
+        
 
         return Task.CompletedTask;
+    }
+
+
+
+    public static string GetAllWeatherData() {
+        return "{RETURNED AS YEISON}";
+    }
+
+    public static void AddWeatherData() {
+        string tableName = "weatherdata";
+        string insertDataSql = $"INSERT INTO {tableName} (timestamp, humidity, temperature) VALUES (@timestamp, @humidity, @temperature)";
+        DateTime timestamp = DateTime.Now;
+        float humidity = 50.5f;
+        float temperature = 25.0f;
+
+
+        using MySqlCommand command = new MySqlCommand(insertDataSql, Connection);
+
+        command.Parameters.AddWithValue("@timestamp", timestamp);
+        command.Parameters.AddWithValue("@humidity", humidity);
+        command.Parameters.AddWithValue("@temperature", temperature);
+
+        int rowsChanged = command.ExecuteNonQuery();
+        if (rowsChanged == 0) throw new Exception("Unable to weather add data!");
     }
 
 }

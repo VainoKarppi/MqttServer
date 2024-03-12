@@ -5,6 +5,8 @@ VisualStudioVersion = 17.5.002.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MqttServer", "MqttServer\MqttServer.csproj", "{D8816B2F-0BB9-4CB0-8F8C-CF1B73B07F26}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MqttFrontend", "MqttFrontend\MqttFrontend.csproj", "{91EB7D11-E89E-4065-B3FD-3425099AC519}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{D8816B2F-0BB9-4CB0-8F8C-CF1B73B07F26}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D8816B2F-0BB9-4CB0-8F8C-CF1B73B07F26}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D8816B2F-0BB9-4CB0-8F8C-CF1B73B07F26}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91EB7D11-E89E-4065-B3FD-3425099AC519}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91EB7D11-E89E-4065-B3FD-3425099AC519}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91EB7D11-E89E-4065-B3FD-3425099AC519}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91EB7D11-E89E-4065-B3FD-3425099AC519}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
