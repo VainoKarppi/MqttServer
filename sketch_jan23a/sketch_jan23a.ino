@@ -64,17 +64,10 @@ void setup() {
 }
 
 void loop() {
-<<<<<<< HEAD
-  if (!client.connected()) {
-    reconnect();
-  }
-  client.loop();
-=======
     if (!client.connected()) {
         reconnect();
     }
     client.loop();
->>>>>>> 82e2885d0308caf80594207ffc7797db9ad3f10e
 
     // Variable for measured temperature
     float measuredTemp = 0.0;
@@ -83,20 +76,6 @@ void loop() {
     float h = dht.readHumidity();
     measuredTemp = dht.readTemperature();
 
-<<<<<<< HEAD
-  Serial.print(F("Humidity: "));
-  Serial.print(h);
-  Serial.print(F("%  Temperature: "));
-  Serial.print(t);
-  Serial.println();
-
-  char message[50];
-  snprintf(message, 50, "Hello from ESP32 at %ld", millis());
-  client.publish("esp32/test", message);
-  Serial.print("Message sent: ");
-  Serial.println(message);
-  delay(5000);
-=======
     Serial.print(F("Humidity: "));
     Serial.print(h);
     Serial.print(F("%  Temperature: "));
@@ -121,7 +100,6 @@ void loop() {
 
 
     delay(5000);
->>>>>>> 82e2885d0308caf80594207ffc7797db9ad3f10e
 }
 
 void setup_wifi() {
