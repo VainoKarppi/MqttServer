@@ -79,8 +79,6 @@
         try {
             user = await AuthenticationService.Authenticate()!;
             if (user is not null && forecasts is null) forecasts = await ForecastService.GetForecastAsync(user.Token!);
-            Console.WriteLine(forecasts!.Count());
-            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(forecasts));
         } catch (Exception ex) {
             errorCode = ex.Message;
         }

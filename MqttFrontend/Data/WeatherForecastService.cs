@@ -33,14 +33,11 @@ public class WeatherForecastService
 
         if (responseData == "{}" || responseData == "") throw new Exception("Server error!");
 
-        Console.WriteLine(responseData);
-
         using JsonDocument document = JsonDocument.Parse(responseData)!;
 
         List<WeatherData> weatherData = new();
         foreach (JsonElement element in document.RootElement.EnumerateArray()) {
-
-            WeatherData data6 = new() {
+            WeatherData data = new() {
                 Id = element.GetProperty("id").GetInt32(),
                 Date = element.GetProperty("date").GetDateTime(),
                 Humidity = (float)element.GetProperty("humidity").GetDecimal(),
@@ -48,7 +45,7 @@ public class WeatherForecastService
                 Wind = (float)element.GetProperty("wind").GetDecimal(),
                 Pressure = (float)element.GetProperty("pressure").GetDecimal()
             };
-            weatherData.Add(data6);
+            weatherData.Add(data);
         }
 
         return weatherData.ToArray();
