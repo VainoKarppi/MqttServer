@@ -70,7 +70,7 @@
     private WeatherForecastService.WeatherData[]? forecasts;
     private AuthenticationService.User? user;
     private bool connecting = true;
-    private string? ApiKey = AuthenticationService.Token;
+    private string? ApiKey = AuthenticationService.Token; // TODO store api key to local cache
     private string ApiUrl = "http://localhost:5000";
     private string errorCode = "";
 
@@ -80,6 +80,7 @@
             user = await AuthenticationService.Authenticate()!;
             if (user is not null && forecasts is null) forecasts = await ForecastService.GetForecastAsync(user.Token!);
         } catch (Exception ex) {
+            Console.WriteLine(ex);
             errorCode = ex.Message;
         }
         connecting = false;
