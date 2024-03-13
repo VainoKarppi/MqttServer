@@ -28,6 +28,7 @@ public class WeatherForecastService
 
         HttpResponseMessage response = await client.GetAsync(AuthenticationService.ApiUrl + "getAllWeatherData");
 
+        if (response.StatusCode == System.Net.HttpStatusCode.BadRequest) throw new UnauthorizedAccessException("");
         if (!response.IsSuccessStatusCode) throw new UnauthorizedAccessException("Invalid credientials");
         
         string responseData = await response.Content.ReadAsStringAsync();

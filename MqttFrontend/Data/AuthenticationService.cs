@@ -36,13 +36,16 @@ public class AuthenticationService {
     public static List<User> UsersList = new();
     private static string AppSettingsPath = "appsettings.json";
 
-    public async Task<User> Authenticate() {
+    public async Task<User?> Authenticate() {
+        if (string.IsNullOrWhiteSpace(ApiUrl) || string.IsNullOrWhiteSpace(Token)) return null;
+        
         using HttpClient client = new();
 
         client.DefaultRequestHeaders.Add("Authorization", "Bearer " + Token);
         HttpResponseMessage response = await client.GetAsync(ApiUrl + "authenticate");
 
-        if (!response.IsSuccessStatusCode) throw new UnauthorizedAccessException("Invalid credientials");
+        if (response.StatusCode == System.Net.HttpStatusCode.BadRequest) throw new UnauthorizedAccessException("");    
+        if (!response.IsSuccessStatusCode) throw new UnauthorizedAccessException();
 
         // Read response content
         string responseData = await response.Content.ReadAsStringAsync();

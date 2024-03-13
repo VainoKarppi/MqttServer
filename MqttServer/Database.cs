@@ -1,6 +1,7 @@
 
 using System;
 using System.Data;
+using System.Text.Json;
 using MySqlConnector;
 
 static class Database {
@@ -131,8 +132,8 @@ static class Database {
         }
 
         // TODO check the ecpect validation
-        if (user is null || user.Id is null) throw new KeyNotFoundException("User not found!");
-        if (DateTime.Now > user.Expiration) throw new UnauthorizedAccessException("User token has expired!");
+        if (user is null || user.Id is null) throw new KeyNotFoundException($"User not found! {token}");
+        if (DateTime.Now > user.Expiration) throw new UnauthorizedAccessException($"User token has expired! {token}");
 
         return user;
     }

@@ -37,26 +37,35 @@ static class MqttServerAPI {
 
     private static void AddAuthorization(WebApplication app) {
         app.Use(async (context, next) => {
-            if (!context.Request.Headers.TryGetValue("Authorization", out var authHeader)) {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsync("Authorization header is missing.");
-                return;
+            try {
+                if (!context.Request.Headers.TryGetValue("Authorization", out var authHeader)) {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    await context.Response.WriteAsync("Authorization header is missing.");
+                    return;
+                }
+
+                
+                var token = authHeader.ToString().Split(" ").LastOrDefault();
+                if (string.IsNullOrEmpty(token) || token.ToLower() is "bearer") {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    await context.Response.WriteAsync("Invalid or missing API token.");
+                    return;
+                }
+
+                Database.User? user = await Database.GetUserByToken(token!);
+                if (user is null) {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    await context.Response.WriteAsync("Invalid user credientials.");
+                    return;
+                }
+
+                // Add user information to the request context
+                context.Items["user"] = user;
+
+                await next();
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
             }
-
-            
-            var token = authHeader.ToString().Split(" ").LastOrDefault();
-            Database.User? user = await Database.GetUserByToken(token!);
-
-            if (string.IsNullOrEmpty(token) || user is null) {
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                await context.Response.WriteAsync("Invalid or missing API token.");
-                return;
-            }
-
-            // Add user information to the request context
-            context.Items["user"] = user;
-
-            await next();
         });
     }
 
