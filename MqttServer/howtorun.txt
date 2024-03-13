@@ -1,12 +1,16 @@
 
 
-download net8.0 sdk
-https://dotnet.microsoft.com/en-us/download/dotnet/8.0
+download net8.0 sdk from:
+  -  https://dotnet.microsoft.com/en-us/download/dotnet/8.0
 
 navigate to "MqttServer/MqttServer" folder in terminal.
 
 If you get a message saying that MQTTNet or MySQLLibary was not found, run command:
-dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org
+  -  dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org
+
+Install the dev-cert for https:
+  -  dotnet dev-certs https --trust
+
 
 run application:
-dotnet run
+  -  dotnet run
