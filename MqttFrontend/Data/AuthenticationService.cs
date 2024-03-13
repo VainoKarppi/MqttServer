@@ -29,8 +29,11 @@ public class AuthenticationService {
         }
     }
 
+    // TODO add multiple user authentication with different api keys and permissions
+
     public static string? ApiUrl;
     public static string? Token;
+    public static List<User> UsersList = new();
     private static string AppSettingsPath = "appsettings.json";
 
     public async Task<User> Authenticate() {
@@ -56,7 +59,10 @@ public class AuthenticationService {
         };
         if (user.Id is null || user.Username is null || user.Expiration is null || user.Token is null) throw new ValidationException($"User data corrupt: {responseData}");
 
-        return user;
+        bool idExists = UsersList.Any(u => u.Id == user.Id);
+        if (!idExists) UsersList.Add(user);
+
+        return user; 
     }
 
 
@@ -102,7 +108,7 @@ public class AuthenticationService {
     }
 
 
-
+    
 
     public class User {
         public int? Id { get; set; }

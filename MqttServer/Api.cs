@@ -97,7 +97,7 @@ static class MqttServerAPI {
         });
         app.MapGet("/servertime", async () => await Pages.GetServerTime());
         app.MapGet("/jsontest", () => Pages.GetJsonResult());
-        app.MapGet("/getAllWeatherData", () => Database.GetAllWeatherData());
+        app.MapGet("/getAllWeatherData", () => Pages.GetAllWeatherData());
     }
 
 
@@ -110,6 +110,10 @@ static class MqttServerAPI {
     //! ==================================
 
     protected static class Pages {
+        internal static async Task<IResult> GetAllWeatherData() {
+            Database.WeatherData[] data = await Database.GetAllWeatherData();
+            return Results.Json(data);
+        }
         internal static async Task<IResult> AuthenticateUser() {
             return await Task.Run(() => {
                 var data = new Database.User {

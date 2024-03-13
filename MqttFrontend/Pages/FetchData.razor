@@ -1,5 +1,6 @@
 ﻿@page "/fetchdata"
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
 @using MqttFrontend.Data
 @using System
 @inject WeatherForecastService ForecastService
@@ -31,6 +32,7 @@
 
 <p><em>You are authorized!</em></p>
 
+<p style="color: red;">@errorCode</p>
 
 @if (forecasts == null) {
     <p><em>Loading...</em></p>
@@ -38,20 +40,24 @@
     <table class="table">
         <thead>
             <tr>
+                <th>Id</th>
                 <th>Date</th>
+                <th>Humidity</th>
                 <th>Temp. (C)</th>
-                <th>Temp. (F)</th>
-                <th>Summary</th>
+                <th>Wind</th>
+                <th>Pressure</th>
             </tr>
         </thead>
         <tbody>
             @foreach (var forecast in forecasts)
             {
                 <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
+                    <td>@forecast.Id</td>
+                    <td>@forecast.Date</td>
+                    <td>@forecast.Humidity</td>
+                    <td>@forecast.Temperature</td>
+                    <td>@forecast.Wind</td>
+                    <td>@forecast.Pressure</td>
                 </tr>
             }
         </tbody>
@@ -61,28 +67,36 @@
 
 
 @code {
-    private WeatherForecast[]? forecasts;
+    private WeatherForecastService.WeatherData[]? forecasts;
     private AuthenticationService.User? user;
     private bool connecting = true;
     private string? ApiKey = AuthenticationService.Token;
     private string ApiUrl = "http://localhost:5000";
     private string errorCode = "";
 
-    
+
     protected override async Task OnInitializedAsync() {
         try {
             user = await AuthenticationService.Authenticate()!;
-            forecasts = await ForecastService.GetForecastAsync();
+            if (user is not null && forecasts is null) forecasts = await ForecastService.GetForecastAsync(user.Token!);
+            Console.WriteLine(forecasts!.Count());
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(forecasts));
         } catch (Exception ex) {
             errorCode = ex.Message;
         }
         connecting = false;
     }
 
+/*
     protected override async Task OnAfterRenderAsync(bool firstrender) {
-        if (!firstrender && forecasts is null) forecasts = await ForecastService.GetForecastAsync();
+        try {
+            //if (!firstrender && forecasts is null && user is not null) forecasts = await ForecastService.GetForecastAsync(user.Token!);
+            Console.WriteLine(forecasts.Count());
+        } catch (Exception ex) {
+            errorCode = ex.Message;
+        }
     }
-
+*/
     
     private async Task UpdateAPIData() {
         try {

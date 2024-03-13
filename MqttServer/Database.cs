@@ -138,9 +138,18 @@ static class Database {
     }
 
 
-    // TODO
-    public static string GetAllWeatherData() {
-        return "{RETURNED AS YEISON}";
+    // TODO get from DB
+    public static Task<WeatherData[]> GetAllWeatherData() {
+
+        // PLACEHOLDER FOR DATA TESTING
+        return Task.FromResult(Enumerable.Range(1, 5).Select(index => new WeatherData {
+            Id = index,
+            Date = DateTime.Now.AddDays(Random.Shared.Next(-20, 20)),
+            Humidity = Random.Shared.Next(-20, 55),
+            Temperature = Random.Shared.Next(-20, 55),
+            Wind = Random.Shared.Next(-20, 55),
+            Pressure = Random.Shared.Next(-20, 55)
+        }).ToArray());
     }
 
     // TODO Get weatherdata within timeframe
@@ -172,7 +181,14 @@ static class Database {
     }
 
 
-
+    public class WeatherData {
+        public int Id { get; set; }
+        public DateTime Date { get; set; }
+        public float? Humidity { get; set; }
+        public float? Temperature { get; set; }
+        public float? Wind { get; set; }
+        public float? Pressure { get; set; }
+    }
 
 
     public class User {

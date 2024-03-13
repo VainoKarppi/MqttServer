@@ -38,7 +38,7 @@ await Server.StartAsync();
 Console.WriteLine("Server Started!");
 
 
-Console.WriteLine("\nCommands: Exit, Send, CreateToken\n");
+Console.WriteLine("\nCommands: Exit, Send, CreateApiToken\n");
 while (true) {
     try {
         string? input = Console.ReadLine()?.ToLower();
@@ -53,7 +53,7 @@ while (true) {
             await SendData(topic, mode);
         }
 
-        if (input == "createtoken") {
+        if (input == "createapitoken") {
             Console.WriteLine("\nEnter username: ");
             string? username = Console.ReadLine();
             Console.WriteLine("\nEnter expiration time in days (default is one year): ");

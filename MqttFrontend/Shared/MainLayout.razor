@@ -25,7 +25,8 @@
 @code {
 
     public void Logout() {
-        AuthenticationService.Token = "";
+        AuthenticationService.UsersList.RemoveAll(u => u.Token == AuthenticationService.Token);
+        AuthenticationService.Token = ""; // TODO better handling
         Navigation.NavigateTo("/");
     }
 }
