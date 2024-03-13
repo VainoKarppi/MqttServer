@@ -148,7 +148,22 @@ static class Database {
             Date = DateTime.Now.AddDays(Random.Shared.Next(-20, 20)),
             Humidity = Random.Shared.Next(-20, 55),
             Temperature = Random.Shared.Next(-20, 55),
-            //Wind = Random.Shared.Next(-20, 55),
+            Wind = Random.Shared.Next(-20, 55),
+            Pressure = Random.Shared.Next(-20, 55)
+        }).ToArray());
+    }
+
+
+    //TODO SQL query to select only within the times
+    public static Task<WeatherData[]> GetWeatherDataByTime(DateOnly start, DateOnly end) {
+
+        //TODO PLACEHOLDER FOR DATA TESTING
+        return Task.FromResult(Enumerable.Range(1, 5).Select(index => new WeatherData {
+            Id = index,
+            Date = DateTime.Now,
+            Humidity = Random.Shared.Next(-20, 55),
+            Temperature = Random.Shared.Next(-20, 55),
+            Wind = Random.Shared.Next(-20, 55),
             Pressure = Random.Shared.Next(-20, 55)
         }).ToArray());
     }

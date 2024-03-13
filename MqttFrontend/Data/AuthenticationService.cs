@@ -38,7 +38,7 @@ public class AuthenticationService {
 
     public async Task<User?> Authenticate() {
         if (string.IsNullOrWhiteSpace(ApiUrl) || string.IsNullOrWhiteSpace(Token)) return null;
-        
+
         using HttpClient client = new();
 
         client.DefaultRequestHeaders.Add("Authorization", "Bearer " + Token);
@@ -74,17 +74,21 @@ public class AuthenticationService {
     //! Keep as Synchronous !
     public async Task UpdateApiKey(string apiKey) {
         if (apiKey == Token) return;
-        Console.WriteLine($"Updating API key to: {apiKey}");
+        
 
         string json = await File.ReadAllTextAsync(AppSettingsPath);
 
         JsonObject jobject = JsonNode.Parse(json)!.AsObject();
+
         jobject["ApiKey"] = apiKey;
         Token = apiKey;
+
+        if (jobject["ApiKey"]!.ToString() == apiKey) return;
 
         var options = new JsonSerializerOptions {WriteIndented = true};
         string serialised = JsonSerializer.Serialize(jobject, options);
 
+        Console.WriteLine($"Updating API key to: {apiKey}");
         await File.WriteAllTextAsync(AppSettingsPath,serialised);
 
         Console.WriteLine("API key updated successfully!");
@@ -94,14 +98,16 @@ public class AuthenticationService {
         if (apiUrl[^1] != '/') apiUrl += "/";
         if (apiUrl == ApiUrl) return;
 
-        Console.WriteLine($"Updating API URL to: {apiUrl}");
-
         string json = await File.ReadAllTextAsync(AppSettingsPath);
 
         JsonObject jobject = JsonNode.Parse(json)!.AsObject();
         jobject["ApiUrl"] = apiUrl;
         ApiUrl = apiUrl;
 
+        if (jobject["ApiUrl"]!.ToString() == apiUrl) return;
+        
+        Console.WriteLine($"Updating API URL to: {apiUrl}");
+        
         var options = new JsonSerializerOptions {WriteIndented = true};
         string serialised = JsonSerializer.Serialize(jobject, options);
 

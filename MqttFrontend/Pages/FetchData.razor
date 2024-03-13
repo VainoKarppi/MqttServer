@@ -37,6 +37,16 @@
 @if (forecasts == null) {
     <p><em>Loading...</em></p>
 } else {
+    <p>Start Date</p>
+    <InputDate @bind-Value="@startDate" />
+    <p>End Date</p>
+    <InputDate @bind-Value="@endDate" />
+    <br>
+    <a>Use time set <InputCheckbox @onclick="StateHasChanged" @bind-Value="useTime" /></a>
+    <br>
+    <button class="btn btn-primary" disabled="@(!useTime)" @onclick="ReloadWeatherData">Reload</button>
+    <br>
+
     <table class="table">
         <thead>
             <tr>
@@ -67,6 +77,9 @@
 
 
 @code {
+    private bool useTime = false;
+    private DateTime startDate = DateTime.Now.AddDays(-7);
+    private DateTime endDate = DateTime.Now;
     private WeatherForecastService.WeatherData[]? forecasts;
     private AuthenticationService.User? user;
     private bool connecting = true;
@@ -99,7 +112,12 @@
         }
     }*/
 
-    
+    private async Task ReloadWeatherData() {
+        if (user is null || !useTime) return;
+
+        if (useTime) forecasts = await ForecastService.GetForecastAsync(user.Token!,DateOnly.FromDateTime(startDate),DateOnly.FromDateTime(endDate));
+        else await ForecastService.GetForecastAsync(user.Token!);
+    }
     private async Task UpdateAPIData() {
         try {
             connecting = true;

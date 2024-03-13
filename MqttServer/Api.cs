@@ -106,7 +106,7 @@ static class MqttServerAPI {
         });
         app.MapGet("/servertime", async () => await Pages.GetServerTime());
         app.MapGet("/jsontest", () => Pages.GetJsonResult());
-        app.MapGet("/getAllWeatherData", () => Pages.GetAllWeatherData());
+        app.MapGet("/getWeatherData", Pages.GetAllWeatherData);
     }
 
 
@@ -119,9 +119,21 @@ static class MqttServerAPI {
     //! ==================================
 
     protected static class Pages {
-        internal static async Task<IResult> GetAllWeatherData() {
-            Database.WeatherData[] data = await Database.GetAllWeatherData();
-            return Results.Json(data);
+        internal static async Task GetAllWeatherData(HttpContext context) {
+
+            DateOnly? start = DateOnly.TryParse(context.Request.Query["start"], out DateOnly startDate) ? startDate : null;
+            DateOnly? end = DateOnly.TryParse(context.Request.Query["end"], out DateOnly endDate) ? endDate : null;
+
+            Database.WeatherData[] data;
+            Console.WriteLine($"start:{start}");
+            Console.WriteLine($"END:{end}");
+            if (end is not null) {
+                if (start is null) startDate = DateOnly.FromDateTime(DateTime.Now);
+                data = await Database.GetWeatherDataByTime(startDate, endDate);
+            } else {
+                data = await Database.GetAllWeatherData();
+            }
+            context.Response.WriteAsJsonAsync(data);
         }
         internal static async Task<IResult> AuthenticateUser() {
             return await Task.Run(() => {

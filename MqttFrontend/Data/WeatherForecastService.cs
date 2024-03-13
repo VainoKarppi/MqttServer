@@ -21,12 +21,18 @@ public class WeatherForecast
 public class WeatherForecastService
 {
 
-    public async Task<WeatherData[]> GetForecastAsync(string token)
-    {
+    public async Task<WeatherData[]> GetForecastAsync(string token, DateOnly? start = null, DateOnly? end = null) {
+        
         using HttpClient client = new();
         client.DefaultRequestHeaders.Add("Authorization", "Bearer " + token);
 
-        HttpResponseMessage response = await client.GetAsync(AuthenticationService.ApiUrl + "getAllWeatherData");
+        string query = "";
+        if (end is not null) {
+            start ??= DateOnly.FromDateTime(DateTime.Now);
+            query += $"?start={start}&end={DateOnly.FromDateTime(DateTime.Now)}";
+        }
+
+        HttpResponseMessage response = await client.GetAsync(AuthenticationService.ApiUrl + "getWeatherData" + query);
 
         if (response.StatusCode == System.Net.HttpStatusCode.BadRequest) throw new UnauthorizedAccessException("");
         if (!response.IsSuccessStatusCode) throw new UnauthorizedAccessException("Invalid credientials");
