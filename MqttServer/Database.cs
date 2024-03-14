@@ -188,17 +188,17 @@ static class Database {
     //TODO SQL query to select only within the times
     public static async Task<WeatherData[]> GetWeatherDataByTime(DateOnly start, DateOnly end) {
         string tableName = "weatherdata";
-        string sqlQuery = $"SELECT * FROM {tableName} WHERE timestamp >= @dateStart";
+        string sqlQuery = $"SELECT * FROM {tableName} WHERE timestamp >= @dateStart AND timestamp <= @dateEnd";
         using MySqlCommand command = new MySqlCommand(sqlQuery, Connection);
 
-        command.Parameters.AddWithValue("@dateEnd", end);
         command.Parameters.AddWithValue("@dateStart", start);
+        command.Parameters.AddWithValue("@dateEnd", end.AddDays(1));
 
         using MySqlDataReader reader = await command.ExecuteReaderAsync();
 
         List<WeatherData> weatherDatas = [];
 
-        while (await reader.ReadAsync()) {
+        while (reader.Read()) {
             WeatherData weather = new() {
                 Id = (int)reader["id"],
                 Date = (DateTime)reader["timestamp"],
@@ -209,7 +209,7 @@ static class Database {
             };
             weatherDatas.Add(weather);
         }
-        await reader.CloseAsync();
+        reader.Close();
 
         return weatherDatas.ToArray();
     }

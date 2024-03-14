@@ -34,14 +34,15 @@
 
 <p style="color: red;">@errorCode</p>
 
-@if (forecasts == null || loading) {
+@if (forecasts == null) {
     <p><em>Loading...</em></p>
 } else {
-    <p>Start Date</p>
-    <InputDate @bind-Value="@startDate" />
-    <p>End Date</p>
-    <InputDate @bind-Value="@endDate" />
+    
+    <label>Start Date</label>
+    <InputDate style="max-width: 150px;" class="form-control" @bind-Value="@startDate" />
     <br>
+    <label>End Date</label>
+    <InputDate style="max-width: 150px;" class="form-control" @bind-Value="@endDate"/>
     <a>Use time set <InputCheckbox @bind-Value="useTime" /></a>
     <br>
 
@@ -74,7 +75,6 @@
 
 @code {
     private bool loadingComplete = true;
-    private bool loading = false;
     private bool useTime = false;
     private bool timeInUse = false;
     private DateTime startDate = DateTime.Now.AddDays(-1);
@@ -90,36 +90,41 @@
     protected override async Task OnInitializedAsync() {
         try {
             user = await AuthenticationService.Authenticate()!;
-            if (user is not null && forecasts is null) forecasts = await ForecastService.GetForecastAsync(user.Token!);
+            errorCode = "";
+            StateHasChanged();
         } catch (Exception ex) {
             Console.WriteLine(ex);
             errorCode = ex.Message;
         }
-        connecting = false;
-        loading = false;
-        StateHasChanged();
+        connecting = false; 
     }
 
     
     protected override async Task OnAfterRenderAsync(bool firstrender) {
         try {
-            if (user is null) return;
-            if (skipNextRender) {
+            if (skipNextRender || firstrender) {
                 skipNextRender = false;
                 return;
             };
+            if (user is null) return;
+            skipNextRender = true;
 
             if (useTime) {
+                if (startDate > endDate) {
+                    forecasts = [];
+                    throw new Exception("End date cannot be lower than start date!");
+                }
                 forecasts = await ForecastService.GetForecastAsync(user.Token!,DateOnly.FromDateTime(startDate),DateOnly.FromDateTime(endDate));
             } else {
-                if (forecasts is null || forecasts.Count() == 0) forecasts = await ForecastService.GetForecastAsync(user!.Token!);
+                forecasts = await ForecastService.GetForecastAsync(user.Token!);
             }
-            skipNextRender = true;
-            StateHasChanged();
+
+            errorCode = "";
         } catch (Exception ex) {
             Console.WriteLine(ex);
             errorCode = ex.Message;
-        } 
+        }
+        StateHasChanged();
     }
 
     private async Task UpdateAPIData() {
@@ -128,13 +133,12 @@
             await UpdateApiURL();
             await UpdateApiKey();
             user = await AuthenticationService.Authenticate()!;
-            if (user is not null && forecasts is null) forecasts = await ForecastService.GetForecastAsync(user.Token!);
+            errorCode = "";
         } catch (Exception ex) {
             Console.WriteLine(ex);
             errorCode = ex.Message; 
         }
         connecting = false;
-        StateHasChanged();
     }
     private async Task UpdateApiKey() {
         if (ApiKey is null || ApiKey.Length != 36) throw new Exception("Invalid API key!");

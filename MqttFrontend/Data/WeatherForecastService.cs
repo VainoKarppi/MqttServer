@@ -26,10 +26,12 @@ public class WeatherForecastService
         using HttpClient client = new();
         client.DefaultRequestHeaders.Add("Authorization", "Bearer " + token);
 
+        if (start is not null && end is null) throw new Exception("No endDate set!");
+
         string query = "";
         if (end is not null) {
             start ??= DateOnly.FromDateTime(DateTime.Now);
-            query += $"?start={start}&end={DateOnly.FromDateTime(DateTime.Now)}";
+            query += $"?start={start}&end={end}";
         }
 
         HttpResponseMessage response = await client.GetAsync(AuthenticationService.ApiUrl + "getWeatherData" + query);
@@ -38,13 +40,12 @@ public class WeatherForecastService
         if (!response.IsSuccessStatusCode) throw new UnauthorizedAccessException("Invalid credientials");
         
         string responseData = await response.Content.ReadAsStringAsync();
-        if (responseData == "[]" || responseData == "{}") return [];
+        if (responseData == "[]" || responseData == "{}" || responseData == "") return [];
 
         using JsonDocument document = JsonDocument.Parse(responseData)!;
 
         List<WeatherData> weatherData = new();
         foreach (JsonElement element in document.RootElement.EnumerateArray()) {
-
             WeatherData data = new() { 
                 Id = element.TryGetProperty("id", out var id) && id.ValueKind != JsonValueKind.Null ? id.GetInt32() : null,
                 Date = element.TryGetProperty("date", out var date) && date.ValueKind != JsonValueKind.Null ? date.GetDateTime() : null,
