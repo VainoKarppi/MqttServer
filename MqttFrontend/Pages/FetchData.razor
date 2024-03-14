@@ -34,7 +34,7 @@
 
 <p style="color: red;">@errorCode</p>
 
-@if (forecasts == null) {
+@if (forecasts == null || loading) {
     <p><em>Loading...</em></p>
 } else {
     <p>Start Date</p>
@@ -42,9 +42,7 @@
     <p>End Date</p>
     <InputDate @bind-Value="@endDate" />
     <br>
-    <a>Use time set <InputCheckbox @onclick="StateHasChanged" @bind-Value="useTime" /></a>
-    <br>
-    <button class="btn btn-primary" disabled="@(!useTime)" @onclick="ReloadWeatherData">Reload</button>
+    <a>Use time set <InputCheckbox @bind-Value="useTime" /></a>
     <br>
 
     <table class="table">
@@ -77,8 +75,11 @@
 
 
 @code {
+    private bool loadingComplete = true;
+    private bool loading = false;
     private bool useTime = false;
-    private DateTime startDate = DateTime.Now.AddDays(-7);
+    private bool timeInUse = false;
+    private DateTime startDate = DateTime.Now.AddDays(-1);
     private DateTime endDate = DateTime.Now;
     private WeatherForecastService.WeatherData[]? forecasts;
     private AuthenticationService.User? user;
@@ -86,38 +87,43 @@
     private string? ApiKey = AuthenticationService.Token; // TODO store api key to local cache
     private string? ApiUrl = AuthenticationService.ApiUrl;
     private string errorCode = "";
-
+    private bool skipNextRender = false;
 
     protected override async Task OnInitializedAsync() {
         try {
             user = await AuthenticationService.Authenticate()!;
             if (user is not null && forecasts is null) forecasts = await ForecastService.GetForecastAsync(user.Token!);
         } catch (Exception ex) {
-            errorCode = ex.Message;
-        }
-        connecting = false;
-        StateHasChanged();
-    }
-
-    /*
-    protected override async Task OnAfterRenderAsync(bool firstrender) {
-        try {
-            if (!firstrender && forecasts is null && user is not null) {
-                forecasts = await ForecastService.GetForecastAsync(user.Token!);
-                StateHasChanged();
-            }
-        } catch (Exception ex) {
             Console.WriteLine(ex);
             errorCode = ex.Message;
         }
-    }*/
-
-    private async Task ReloadWeatherData() {
-        if (user is null || !useTime) return;
-
-        if (useTime) forecasts = await ForecastService.GetForecastAsync(user.Token!,DateOnly.FromDateTime(startDate),DateOnly.FromDateTime(endDate));
-        else await ForecastService.GetForecastAsync(user.Token!);
+        connecting = false;
+        loading = false;
+        StateHasChanged();
     }
+
+    
+    protected override async Task OnAfterRenderAsync(bool firstrender) {
+        try {
+            if (user is null) return;
+            if (skipNextRender) {
+                skipNextRender = false;
+                return;
+            };
+
+            if (useTime) {
+                forecasts = await ForecastService.GetForecastAsync(user.Token!,DateOnly.FromDateTime(startDate),DateOnly.FromDateTime(endDate));
+            } else {
+                if (forecasts is null || forecasts.Count() == 0) forecasts = await ForecastService.GetForecastAsync(user!.Token!);
+            }
+            skipNextRender = true;
+            StateHasChanged();
+        } catch (Exception ex) {
+            Console.WriteLine(ex);
+            errorCode = ex.Message;
+        } 
+    }
+
     private async Task UpdateAPIData() {
         try {
             connecting = true;
@@ -126,6 +132,7 @@
             user = await AuthenticationService.Authenticate()!;
             if (user is not null && forecasts is null) forecasts = await ForecastService.GetForecastAsync(user.Token!);
         } catch (Exception ex) {
+            Console.WriteLine(ex);
             errorCode = ex.Message; 
         }
         connecting = false;

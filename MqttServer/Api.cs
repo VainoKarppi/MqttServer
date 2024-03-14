@@ -35,6 +35,7 @@ static class MqttServerAPI {
         return app;
     }
 
+    private static List<object[]> LoggedInUsers = [];
     private static void AddAuthorization(WebApplication app) {
         app.Use(async (context, next) => {
             try {
@@ -52,7 +53,28 @@ static class MqttServerAPI {
                     return;
                 }
 
-                Database.User? user = await Database.GetUserByToken(token!);
+                // Dont recheck for user token from database -> unless more than 30 seconds has past
+                // This will prevent sql from overloading
+                Database.User? user = null;
+                bool checkFromDB = true;
+                bool userFound = false;
+                int userIndex = 0;
+                foreach (object[] item in LoggedInUsers) {
+                    string itemToken = (string)item[1];
+                    if (itemToken != token) continue;
+
+                    user = (Database.User)item[0];
+                    DateTime nextUpdate = (DateTime)item[2];
+                    
+                    checkFromDB = DateTime.Now > nextUpdate.AddSeconds(30);
+
+                    userFound = true;;
+                    if (userFound) break;
+                    userIndex += 1;
+                }
+
+                if (checkFromDB) user = await Database.GetUserByToken(token!);
+
                 if (user is null) {
                     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     await context.Response.WriteAsync("Invalid user credientials.");
@@ -61,6 +83,13 @@ static class MqttServerAPI {
 
                 // Add user information to the request context
                 context.Items["user"] = user;
+
+                // Update LoggedInUsers list
+                if (!userFound) {
+                    LoggedInUsers.Add([user,token,DateTime.Now]);
+                } else if (checkFromDB) {
+                    LoggedInUsers[userIndex][2] = DateTime.Now;
+                }
 
                 await next();
             } catch (Exception ex) {
@@ -125,10 +154,10 @@ static class MqttServerAPI {
             DateOnly? end = DateOnly.TryParse(context.Request.Query["end"], out DateOnly endDate) ? endDate : null;
 
             Database.WeatherData[] data;
-            Console.WriteLine($"start:{start}");
-            Console.WriteLine($"END:{end}");
             if (end is not null) {
                 if (start is null) startDate = DateOnly.FromDateTime(DateTime.Now);
+                Console.WriteLine($"start:{start}");
+                Console.WriteLine($"END:{end}");
                 data = await Database.GetWeatherDataByTime(startDate, endDate);
             } else {
                 data = await Database.GetAllWeatherData();

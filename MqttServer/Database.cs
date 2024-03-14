@@ -115,21 +115,22 @@ static class Database {
 
     public static async Task<User?> GetUserByToken(string token) {
         string tableName = "users";
-        string insertDataSql = $"SELECT * FROM {tableName} WHERE token=@token";
-        using MySqlCommand command = new MySqlCommand(insertDataSql, Connection);
+        string sqlQuery = $"SELECT * FROM {tableName} WHERE token=@token";
+        using MySqlCommand command = new MySqlCommand(sqlQuery, Connection);
 
         command.Parameters.AddWithValue("@token", token);
-
+        
         using MySqlDataReader reader = await command.ExecuteReaderAsync();
 
         User user = new();
 
-        while (reader.Read()) {
+        while (await reader.ReadAsync()) {
             user.Id = (int)reader["id"];
             user.Username = (string)reader["username"];
             user.Expiration = (DateTime)reader["expiration"];
             user.Token = (string)reader["token"];
         }
+        await reader.CloseAsync();
 
         // TODO check the ecpect validation
         if (user is null || user.Id is null) throw new KeyNotFoundException($"User not found! {token}");
@@ -155,9 +156,34 @@ static class Database {
 
 
     //TODO SQL query to select only within the times
-    public static Task<WeatherData[]> GetWeatherDataByTime(DateOnly start, DateOnly end) {
+    public static async Task<WeatherData[]> GetWeatherDataByTime(DateOnly start, DateOnly end) {
+        string tableName = "weatherdata";
+        string sqlQuery = $"SELECT * FROM {tableName} WHERE CAST(timestamp AS DATE) BETWEEN @dateMin AND @dateMax";
+        using MySqlCommand command = new MySqlCommand(sqlQuery, Connection);
 
-        //TODO PLACEHOLDER FOR DATA TESTING
+        command.Parameters.AddWithValue("@dateMin", end);
+        command.Parameters.AddWithValue("@dateMax", start);
+
+        using MySqlDataReader reader = await command.ExecuteReaderAsync();
+
+        List<WeatherData> weatherDatas = [];
+
+        // TODO handle if item value is null
+        while (await reader.ReadAsync()) {
+            WeatherData weather = new() {
+                Date = (DateTime)reader["timestamp"],
+                Humidity = (float)reader["humidity"],
+                Temperature = (float)reader["temperature"],
+                Wind = (float)reader["wind"],
+                Pressure = (float)reader["pressure"]
+            };
+            weatherDatas.Add(weather);
+        }
+        await reader.CloseAsync();
+
+        return weatherDatas.ToArray();
+
+        /*
         return Task.FromResult(Enumerable.Range(1, 5).Select(index => new WeatherData {
             Id = index,
             Date = DateTime.Now,
@@ -166,6 +192,7 @@ static class Database {
             Wind = Random.Shared.Next(-20, 55),
             Pressure = Random.Shared.Next(-20, 55)
         }).ToArray());
+        */
     }
 
     // TODO Get weatherdata within timeframe

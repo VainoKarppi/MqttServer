@@ -107,7 +107,7 @@ public class AuthenticationService {
         if (jobject["ApiUrl"]!.ToString() == apiUrl) return;
         
         Console.WriteLine($"Updating API URL to: {apiUrl}");
-        
+
         var options = new JsonSerializerOptions {WriteIndented = true};
         string serialised = JsonSerializer.Serialize(jobject, options);
 

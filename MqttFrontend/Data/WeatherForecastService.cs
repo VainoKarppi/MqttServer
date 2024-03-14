@@ -38,8 +38,7 @@ public class WeatherForecastService
         if (!response.IsSuccessStatusCode) throw new UnauthorizedAccessException("Invalid credientials");
         
         string responseData = await response.Content.ReadAsStringAsync();
-
-        if (responseData == "{}" || responseData == "") throw new Exception("Server error!");
+        if (responseData == "[]" || responseData == "{}") return [];
 
         using JsonDocument document = JsonDocument.Parse(responseData)!;
 
