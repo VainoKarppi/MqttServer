@@ -75,7 +75,7 @@ static class Database {
         tableName = "logs";
         using MySqlCommand logs = new ($@"CREATE TABLE IF NOT EXISTS {tableName} (
             Id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT,
+            user_id INT NULL DEFAULT NULL,
             timestamp TIMESTAMP,
             code INT NULL DEFAULT NULL,
             message TEXT NULL DEFAULT NULL,
@@ -134,7 +134,6 @@ static class Database {
         }
         await reader.CloseAsync();
 
-        // TODO check the ecpect validation
         if (user is null || user.Id is null) throw new KeyNotFoundException($"User not found! {token}");
         if (DateTime.Now > user.Expiration) throw new UnauthorizedAccessException($"User token has expired! {token}");
 
@@ -158,7 +157,7 @@ static class Database {
         
     }
 
-    // TODO get from DB
+
     public static async Task<WeatherData[]> GetAllWeatherData() {
         string tableName = "weatherdata";
         string sqlQuery = $"SELECT * FROM {tableName}";
@@ -169,14 +168,7 @@ static class Database {
 
         List<WeatherData> weatherDatas = [];
         while (await reader.ReadAsync()) {
-            WeatherData weather = new() {
-                Id = (int)reader["id"],
-                Date = (DateTime)reader["timestamp"],
-                Humidity = reader["humidity"] != DBNull.Value ? (float)reader["humidity"] : null,
-                Temperature = reader["temperature"] != DBNull.Value ? (float)reader["temperature"] : null,
-                Wind = reader["wind"] != DBNull.Value ? (float)reader["wind"] : null,
-                Pressure = reader["pressure"] != DBNull.Value ? (float)reader["pressure"] : null,
-            };
+            WeatherData weather = GetWeatherDataFromReader(reader);
             weatherDatas.Add(weather);
         }
         await reader.CloseAsync();
@@ -185,7 +177,6 @@ static class Database {
     }
 
 
-    //TODO SQL query to select only within the times
     public static async Task<WeatherData[]> GetWeatherDataByTime(DateOnly start, DateOnly end) {
         string tableName = "weatherdata";
         string sqlQuery = $"SELECT * FROM {tableName} WHERE timestamp >= @dateStart AND timestamp <= @dateEnd";
@@ -198,23 +189,26 @@ static class Database {
 
         List<WeatherData> weatherDatas = [];
 
-        while (reader.Read()) {
-            WeatherData weather = new() {
-                Id = (int)reader["id"],
-                Date = (DateTime)reader["timestamp"],
-                Humidity = reader["humidity"] != DBNull.Value ? (float)reader["humidity"] : null,
-                Temperature = reader["temperature"] != DBNull.Value ? (float)reader["temperature"] : null,
-                Wind = reader["wind"] != DBNull.Value ? (float)reader["wind"] : null,
-                Pressure = reader["pressure"] != DBNull.Value ? (float)reader["pressure"] : null,
-            };
+        while (await reader.ReadAsync()) {
+            WeatherData weather = GetWeatherDataFromReader(reader);
             weatherDatas.Add(weather);
         }
-        reader.Close();
+        await reader.CloseAsync();
 
         return weatherDatas.ToArray();
     }
 
-    // TODO Get weatherdata within timeframe
+    public static WeatherData GetWeatherDataFromReader(MySqlDataReader reader) {
+        WeatherData weather = new() {
+            Id = (int)reader["id"],
+            Date = (DateTime)reader["timestamp"],
+            Humidity = reader["humidity"] != DBNull.Value ? (float)reader["humidity"] : null,
+            Temperature = reader["temperature"] != DBNull.Value ? (float)reader["temperature"] : null,
+            Wind = reader["wind"] != DBNull.Value ? (float)reader["wind"] : null,
+            Pressure = reader["pressure"] != DBNull.Value ? (float)reader["pressure"] : null,
+        };
+        return weather;
+    }
 
     // TODO Get single weather data by id
 
@@ -222,7 +216,7 @@ static class Database {
 
     // TODO get all log messages
 
-    // TODO get all log messages by client + additional time option
+    // TODO get all log messages by client + additional time option?
 
     public static async Task<bool> AddWeatherData(WeatherData weatherData) {
         string tableName = "weatherdata";
