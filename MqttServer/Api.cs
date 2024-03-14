@@ -156,8 +156,6 @@ static class MqttServerAPI {
             Database.WeatherData[] data;
             if (end is not null) {
                 if (start is null) startDate = DateOnly.FromDateTime(DateTime.Now);
-                Console.WriteLine($"start:{start}");
-                Console.WriteLine($"END:{end}");
                 data = await Database.GetWeatherDataByTime(startDate, endDate);
             } else {
                 data = await Database.GetAllWeatherData();

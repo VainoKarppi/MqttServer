@@ -56,7 +56,8 @@ public class WeatherForecastService
             weatherData.Add(data);
         }
 
-        return weatherData.ToArray();
+        // Order return by date
+        return weatherData.OrderBy(data => data.Date).ToArray();
     }
 
 

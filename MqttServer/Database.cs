@@ -30,6 +30,8 @@ static class Database {
         await Connection.ChangeDatabaseAsync(DatabaseName);
 
         await CreateTables();
+
+        //AddTestDataToDB();
     }
 
     public static bool IsConnectedToDatabase() {
@@ -139,60 +141,77 @@ static class Database {
         return user;
     }
 
+    public static async void AddTestDataToDB() {
 
-    // TODO get from DB
-    public static Task<WeatherData[]> GetAllWeatherData() {
-
-        //TODO PLACEHOLDER FOR DATA TESTING
-        return Task.FromResult(Enumerable.Range(1, 5).Select(index => new WeatherData {
+        List<WeatherData> data = Enumerable.Range(1, 5).Select(index => new WeatherData {
             Id = index,
-            Date = DateTime.Now.AddDays(Random.Shared.Next(-20, 20)),
+            Date = DateTime.Now.AddDays(Random.Shared.Next(-3, 3)),
             Humidity = Random.Shared.Next(-20, 55),
             Temperature = Random.Shared.Next(-20, 55),
             Wind = Random.Shared.Next(-20, 55),
             Pressure = Random.Shared.Next(-20, 55)
-        }).ToArray());
+        }).ToList();
+
+        foreach (var weatherData in data) {
+            await AddWeatherData(weatherData);  
+        }
+        
     }
 
-
-    //TODO SQL query to select only within the times
-    public static async Task<WeatherData[]> GetWeatherDataByTime(DateOnly start, DateOnly end) {
+    // TODO get from DB
+    public static async Task<WeatherData[]> GetAllWeatherData() {
         string tableName = "weatherdata";
-        string sqlQuery = $"SELECT * FROM {tableName} WHERE CAST(timestamp AS DATE) BETWEEN @dateMin AND @dateMax";
-        using MySqlCommand command = new MySqlCommand(sqlQuery, Connection);
+        string sqlQuery = $"SELECT * FROM {tableName}";
 
-        command.Parameters.AddWithValue("@dateMin", end);
-        command.Parameters.AddWithValue("@dateMax", start);
+        using MySqlCommand command = new MySqlCommand(sqlQuery, Connection);
 
         using MySqlDataReader reader = await command.ExecuteReaderAsync();
 
         List<WeatherData> weatherDatas = [];
-
-        // TODO handle if item value is null
         while (await reader.ReadAsync()) {
             WeatherData weather = new() {
+                Id = (int)reader["id"],
                 Date = (DateTime)reader["timestamp"],
-                Humidity = (float)reader["humidity"],
-                Temperature = (float)reader["temperature"],
-                Wind = (float)reader["wind"],
-                Pressure = (float)reader["pressure"]
+                Humidity = reader["humidity"] != DBNull.Value ? (float)reader["humidity"] : null,
+                Temperature = reader["temperature"] != DBNull.Value ? (float)reader["temperature"] : null,
+                Wind = reader["wind"] != DBNull.Value ? (float)reader["wind"] : null,
+                Pressure = reader["pressure"] != DBNull.Value ? (float)reader["pressure"] : null,
             };
             weatherDatas.Add(weather);
         }
         await reader.CloseAsync();
 
         return weatherDatas.ToArray();
+    }
 
-        /*
-        return Task.FromResult(Enumerable.Range(1, 5).Select(index => new WeatherData {
-            Id = index,
-            Date = DateTime.Now,
-            Humidity = Random.Shared.Next(-20, 55),
-            Temperature = Random.Shared.Next(-20, 55),
-            Wind = Random.Shared.Next(-20, 55),
-            Pressure = Random.Shared.Next(-20, 55)
-        }).ToArray());
-        */
+
+    //TODO SQL query to select only within the times
+    public static async Task<WeatherData[]> GetWeatherDataByTime(DateOnly start, DateOnly end) {
+        string tableName = "weatherdata";
+        string sqlQuery = $"SELECT * FROM {tableName} WHERE timestamp >= @dateStart";
+        using MySqlCommand command = new MySqlCommand(sqlQuery, Connection);
+
+        command.Parameters.AddWithValue("@dateEnd", end);
+        command.Parameters.AddWithValue("@dateStart", start);
+
+        using MySqlDataReader reader = await command.ExecuteReaderAsync();
+
+        List<WeatherData> weatherDatas = [];
+
+        while (await reader.ReadAsync()) {
+            WeatherData weather = new() {
+                Id = (int)reader["id"],
+                Date = (DateTime)reader["timestamp"],
+                Humidity = reader["humidity"] != DBNull.Value ? (float)reader["humidity"] : null,
+                Temperature = reader["temperature"] != DBNull.Value ? (float)reader["temperature"] : null,
+                Wind = reader["wind"] != DBNull.Value ? (float)reader["wind"] : null,
+                Pressure = reader["pressure"] != DBNull.Value ? (float)reader["pressure"] : null,
+            };
+            weatherDatas.Add(weather);
+        }
+        await reader.CloseAsync();
+
+        return weatherDatas.ToArray();
     }
 
     // TODO Get weatherdata within timeframe
@@ -205,17 +224,17 @@ static class Database {
 
     // TODO get all log messages by client + additional time option
 
-    public static async Task<bool> AddWeatherData(float? humidity, float? temperature, float? wind, float? pressure) {
+    public static async Task<bool> AddWeatherData(WeatherData weatherData) {
         string tableName = "weatherdata";
         string insertDataSql = $"INSERT INTO {tableName} (timestamp, humidity, temperature, wind, pressure) VALUES (@timestamp, @humidity, @temperature, @wind, @pressure)";
 
         using MySqlCommand command = new MySqlCommand(insertDataSql, Connection);
 
-        command.Parameters.AddWithValue("@timestamp", DateTime.Now);
-        command.Parameters.AddWithValue("@humidity", humidity);
-        command.Parameters.AddWithValue("@temperature", temperature);
-        command.Parameters.AddWithValue("@wind", wind);
-        command.Parameters.AddWithValue("@pressure", pressure);
+        command.Parameters.AddWithValue("@timestamp", weatherData.Date);
+        command.Parameters.AddWithValue("@humidity", weatherData.Humidity);
+        command.Parameters.AddWithValue("@temperature", weatherData.Temperature);
+        command.Parameters.AddWithValue("@wind", weatherData.Wind);
+        command.Parameters.AddWithValue("@pressure", weatherData.Pressure);
 
         int rowsChanged = await command.ExecuteNonQueryAsync();
         if (rowsChanged == 0) throw new Exception("Unable to weather add data!");
