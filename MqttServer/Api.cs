@@ -133,9 +133,12 @@ static class MqttServerAPI {
             return Results.Json(returnData);
 
         });
-        app.MapGet("/servertime", async () => await Pages.GetServerTime());
-        app.MapGet("/jsontest", () => Pages.GetJsonResult());
+        app.MapGet("/servertime", Pages.GetServerTime);
+        app.MapGet("/jsontest", Pages.GetJsonResult);
         app.MapGet("/getWeatherData", Pages.GetAllWeatherData);
+        app.MapGet("/toggleLight", Pages.ToggleLight);
+        app.MapGet("/apiinfo", Pages.GetApiInfo);
+        app.MapGet("/deviceList", Pages.GetAvailableDevices);
     }
 
 
@@ -162,29 +165,47 @@ static class MqttServerAPI {
             }
             context.Response.WriteAsJsonAsync(data);
         }
-        internal static async Task<IResult> AuthenticateUser() {
-            return await Task.Run(() => {
-                var data = new Database.User {
-                    Id = 1,
-                    Username = "asd",
-                    Expiration = DateTime.Now.AddDays(2),
-                    Token = "6dc3017d-0458-4312-ac46-43bc4d137561"
-                };
-                Console.WriteLine(data.Token);
-                return Results.Json(data);
-            }); 
-        }
-        internal static async Task<IResult> GetServerTime() {
-            return await Task.Run(() => {
-                return Results.Text($"{DateTime.Now}");
-            });
+
+        internal static IResult GetServerTime(HttpContext context) {
+            return Results.Text($"{DateTime.Now}");
         }
 
-        internal static async Task<IResult> GetJsonResult() {
-            return await Task.Run(() => {
-                var data = new { Message = "asd" };
-                return Results.Json(data);
-            }); 
+        internal static IResult GetJsonResult(HttpContext context) {
+            var data = new { Message = "test" };
+            return Results.Json(data);
+        }
+
+        internal static async Task ToggleLight(HttpContext context) {
+            try {
+                string clientId = context.Request.Query["clientId"]!.ToString();
+                bool state = bool.Parse(context.Request.Query["state"]!);
+                await MqttServer.SetLightState(clientId,state);
+                context.Response.ContentType = "text/plain";
+                await context.Response.WriteAsync("OK");
+            } catch (Exception ex) {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await context.Response.WriteAsync(ex.Message);
+            }
+        }
+        internal static async Task GetAvailableDevices(HttpContext context) {
+            List<object> values = [];
+
+            foreach (var client in MqttServer.ConnectedClients) {
+                var obj = new {
+                    client.Endpoint,
+                    client.ClientId,
+                    client.DeviceName,
+                    LightState = await MqttServer.GetLightState(client.ClientId!)
+                };
+                values.Add(obj);
+            }
+            context.Response.WriteAsJsonAsync(values);
+        }
+        internal static IResult GetApiInfo(HttpContext context) {
+            var data = new {
+                DatabaseStatus = Database.IsConnectedToDatabase()
+            };
+            return Results.Json(data);
         }
 
     }

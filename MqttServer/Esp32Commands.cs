@@ -9,6 +9,7 @@ using MQTTnet.Diagnostics;
 using MQTTnet.Server;
 
 public static class MqttServer {
+    public static List<ClientDevice> ConnectedClients = [];
     public static MQTTnet.Server.MqttServer? Server;
     private static Dictionary<int,string> Requests = [];
 
@@ -24,6 +25,9 @@ public static class MqttServer {
         Server.ClientConnectedAsync += OnClientConnectedEvent;
         Server.ClientDisconnectedAsync += OnClientDisconnectedEvent;
         Console.WriteLine("MQTT Server Started!");
+
+        // Add test client:
+        ConnectedClients.Add(new ClientDevice("123","127.0.0.1:5007","testTemp"));
     }
 
     public static async Task StopMqttServer() {
@@ -34,21 +38,22 @@ public static class MqttServer {
         Console.WriteLine("MQTT Server Stopped!");
     }
 
-    public static async Task<string> RequestData(string topic, string? payload = null) {
+    public static async Task<string> RequestData(string clientId, string topic, string? payload = null) {
         if (Server is null) throw new Exception("Server not running!");
         if (payload is null) payload = "";
 
-        int key = new Random().Next(1000,9999);
+        // Key is used to indentify the response message result
+        int key = new Random().Next(10000,99999);
 
-        // REQUEST DATA FORMAT = "topic|key" = "myTopic|5226"
-        await SendDataAsync(topic + "|" + key.ToString(), payload);
+        // REQUEST DATA FORMAT = "topic|key" = "myTopic|52265"
+        await SendDataAsync(clientId, topic + "|" + key.ToString(), payload);
 
-        Stopwatch stopwatch = new Stopwatch();
+        Stopwatch stopwatch = Stopwatch.StartNew();
 
         // Get data from Requests dictionary. If the response for the key exists
         // Timeout for 1 second
         while (stopwatch.ElapsedMilliseconds < 1000) {
-            await Task.Delay(3);
+            await Task.Delay(10);
             if (Requests.TryGetValue(key, out string? responseData)) {
                 Requests.Remove(key);
                 return responseData;
@@ -57,44 +62,54 @@ public static class MqttServer {
 
         throw new TimeoutException("Request not found!");
     }
-    public static async Task SendDataAsync(string topic, string payload) {
+    public static async Task SendDataAsync(string clientId, string topic, string payload) {
         if (Server is null) throw new Exception("Server not running!");
+        if (!GetEsp32Status(clientId)) throw new Exception("Unable to contact ESP32");
 
         // Create a new message using the builder as usual.
         var message = new MqttApplicationMessageBuilder().WithTopic(topic).WithPayload(payload).Build();
 
-        Console.WriteLine(message.Topic);
-        Console.WriteLine(message.ConvertPayloadToString());
+        Console.WriteLine($"DEVICE:{clientId} SENDING MESSAGE: {message.Topic} | {payload}");
 
         // Now inject the new message at the broker.
         await Server.InjectApplicationMessage(new InjectedMqttApplicationMessage(message) {
-            SenderClientId = "SenderClientId"
+            SenderClientId = "server"
         });
     }
 
-    public static bool GetEsp32Status() {
-        if (Server is null) throw new Exception("Server not running!");
+    public static bool GetEsp32Status(string clientId) {
+        try {
+            if (Server is null) throw new Exception("Server not running!");
+            int index = ConnectedClients.FindIndex(client => client.ClientId == clientId);
+            if (index == -1) throw new Exception($"Unable to find client from list with id: {clientId}");
+            // TODO ping esp32 to make sure device is still alive
+            return true;
 
-        return false;
+        } catch (Exception) {
+            return false;
+        }
     }
 
-    public static void SetLightState(bool state) {
+    public static async Task SetLightState(string clientId, bool state) {
         if (Server is null) throw new Exception("Server not running!");
-
-
+        
+        await SendDataAsync(clientId, "setledstate",state.ToString());
     }
 
-    public static async Task<bool> GetLightState() {
-        if (Server is null) throw new Exception("Server not running!");
+    public static async Task<bool> GetLightState(string clientId) {
+        try {
+            if (Server is null) throw new Exception("Server not running!");
 
-        string response = await RequestData("getlightstate");
-        bool state = bool.Parse(response);
-        return state;
+            string response = await RequestData(clientId, "getlightstate");
+            bool state = bool.Parse(response);
+            return state;
+        } catch (Exception) {
+            return false;
+        }
     }
 
-    public static void GetWeatherData() {
+    public static void GetWeatherData(string clientId) {
         if (Server is null) throw new Exception("Server not running!");
-
 
     }
 
@@ -103,9 +118,11 @@ public static class MqttServer {
 
 
     private static Task OnClientMessageEvent(ApplicationMessageNotConsumedEventArgs args) {
+        if (args.SenderId.ToLower() == "server") return Task.CompletedTask;
+        
+
         string topic = args.ApplicationMessage.Topic;
         string message = Encoding.UTF8.GetString(args.ApplicationMessage.PayloadSegment);
-
 
         if (topic.Contains('|')) {
             string responseCode = topic.Split('|')[1];
@@ -134,16 +151,27 @@ public static class MqttServer {
         Console.WriteLine(args.ClientId);
         Console.WriteLine(args.Endpoint);
 
+        ConnectedClients.Add(new ClientDevice(args.ClientId,args.Endpoint,args.UserName));
         return Task.CompletedTask;
     }
 
     private static Task OnClientDisconnectedEvent(ClientDisconnectedEventArgs args) {
         Console.WriteLine("Client disconnected!");
         Console.WriteLine(args.ClientId);
+        Console.WriteLine(args.Endpoint);
+
+        ConnectedClients.RemoveAll(user => user.ClientId == args.ClientId);
 
         return Task.CompletedTask;
     }
     
+    public class ClientDevice {
+        public string? Endpoint { get; set; }
+        public string? ClientId { get; set; }
+        public string? DeviceName { get; set; }
+        public ClientDevice() {}
+        public ClientDevice(string clientId, string endpoint, string username) => (ClientId, Endpoint, DeviceName) = (clientId, endpoint, username);
+    }
 
     private class ConsoleLogger : IMqttNetLogger {
         readonly object _consoleSyncRoot = new();

@@ -1,18 +1,4 @@
-﻿using MQTTnet.Diagnostics;
-using MQTTnet.Protocol;
-using MQTTnet.Server;
-using MQTTnet;
-using System.Text.Json;
-using MQTTnet.Packets;
-using MQTTnet.Client;
-using System.Text;
-using Microsoft.AspNetCore.Components;
-
-
-
-
-
-
+﻿
 
 try {
     await Database.ConnectToDatabase();
@@ -47,13 +33,15 @@ while (true) {
         if (input == "exit") break;
 
         if (input == "send") {
+            Console.WriteLine("\nEnter target ID: ");
+            string? target = Console.ReadLine();
             Console.WriteLine("\nEnter topic: ");
             string? topic = Console.ReadLine();
             Console.WriteLine("\nEnter payload: ");
             string? mode = Console.ReadLine();
-            if (string.IsNullOrWhiteSpace(topic) || string.IsNullOrWhiteSpace(mode)) continue;
+            if (string.IsNullOrWhiteSpace(target) || string.IsNullOrWhiteSpace(topic) || string.IsNullOrWhiteSpace(mode)) continue;
 
-            await MqttServer.SendDataAsync(topic, mode);
+            await MqttServer.SendDataAsync(target, topic, mode);
         }
 
         if (input == "createapitoken") {
