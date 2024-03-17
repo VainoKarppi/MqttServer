@@ -12,5 +12,9 @@ Install the dev-cert for https:
   -  dotnet dev-certs https --trust
 
 
-run application:
-  -  dotnet run
+Run MqttServer application:
+  Navigate to "MqttServer" folder in terminal.
+    -  dotnet run
+  
+  Navigate to "MqttFrontend" folder in ANOTHER terminal.
+    -  dotnet watch run
