@@ -14,7 +14,7 @@ public static class MqttServer {
     private static Dictionary<int,string> Requests = [];
 
     public static async Task StartMqttServer(int port, bool enableLogging = false) {
-        // CREATE SERVER
+        // TODO Read port from appsettings.json
 
         var mqttFactory = enableLogging ? new MqttFactory(new ConsoleLogger()) : new MqttFactory();
         var options = new MqttServerOptionsBuilder().WithDefaultEndpoint().WithDefaultEndpointPort(port).Build();
