@@ -3,25 +3,41 @@ using System;
 using System.Data;
 using System.Text.Json;
 using MySqlConnector;
+using Microsoft.Extensions.Configuration;
 
 static class Database {
-
-    //TODO Add these values to environment config
-    private static readonly string IP = "karppi.dy.fi";
-    private static readonly string Username = "test";
-    private static readonly string Password = "test";
-    private static readonly string DatabaseName = "test";
-
+    private static string DatabaseName = "";
 
     
     private static MySqlConnection? Connection;
 
 
     public static async Task ConnectToDatabase() {
-        string connectionString = $"server={IP};uid={Username};pwd={Password}";
+        IConfigurationRoot configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
 
-        Connection = new MySqlConnection(connectionString);
+        // Retrieve configuration values
+        string? server = configuration["Database:Server"];
+        string? portString = configuration["Database:Port"];
+        string? database = configuration["Database:Database"];
+        string? userId = configuration["Database:Username"];
+        string? password = configuration["Database:Password"];
+        if (server == null || portString == null || database == null || userId == null || password == null) {
+            throw new Exception("One or more configuration values are null for database connection!");
+        }
+        uint port = uint.Parse(portString);
+
+        MySqlConnectionStringBuilder builder = new() {
+            Server = server,
+            Port = port,
+            Database = database,
+            UserID = userId,
+            Password = password
+        };
+
+        Connection = new MySqlConnection(builder.ConnectionString);
         await Connection.OpenAsync();
+
+        DatabaseName = builder.Database;
 
         using MySqlCommand command = new ($"CREATE DATABASE IF NOT EXISTS {DatabaseName}", Connection);
         if (command.ExecuteNonQuery() != 0)

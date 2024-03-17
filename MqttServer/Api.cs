@@ -192,12 +192,13 @@ static class MqttServerAPI {
             List<object> values = [];
 
             foreach (var client in MqttServer.ConnectedClients) {
-                bool? state = null; try { state = await MqttServer.GetLightState(client.ClientId!); } catch { }
+                // Return null if no LED was found
+                bool? lightState = null; try { lightState = await MqttServer.GetLightState(client.ClientId!); } catch { }
                 var obj = new {
                     client.Endpoint,
                     client.ClientId,
                     client.DeviceName,
-                    LightState = state
+                    LightState = lightState
                 };
                 values.Add(obj);
             }

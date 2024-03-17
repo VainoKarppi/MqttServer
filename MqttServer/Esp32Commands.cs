@@ -46,7 +46,8 @@ public static class MqttServer {
         int key = new Random().Next(10000,99999);
 
         // REQUEST DATA FORMAT = "topic|key" = "myTopic|52265"
-        await SendDataAsync(clientId, topic + "|" + key.ToString(), payload);
+        topic = topic + "|" + key.ToString();
+        await SendDataAsync(clientId, topic, payload);
 
         Stopwatch stopwatch = Stopwatch.StartNew();
 
@@ -60,6 +61,7 @@ public static class MqttServer {
             }
         }
 
+        Console.WriteLine($"ERROR: Request timed out! DeviceId: {clientId} | ({topic}) | ({payload})");
         throw new TimeoutException("Request response not found!");
     }
     public static async Task SendDataAsync(string clientId, string topic, string payload) {
