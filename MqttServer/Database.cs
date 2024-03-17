@@ -40,7 +40,7 @@ static class Database {
         DatabaseName = builder.Database;
 
         using MySqlCommand command = new ($"CREATE DATABASE IF NOT EXISTS {DatabaseName}", Connection);
-        if (command.ExecuteNonQuery() != 0)
+        if (await command.ExecuteNonQueryAsync() != 0)
             Console.WriteLine($"Database not found, and new was created! ({DatabaseName})");
         
         await Connection.ChangeDatabaseAsync(DatabaseName);
