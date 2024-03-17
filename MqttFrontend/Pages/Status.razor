@@ -23,6 +23,7 @@
     <h4>API server status: @apiResponding</h4>
     <h4>Database status: @dataBaseStatus</h4>
     <br>
+    <h4>Found Devices List:</h4>
     <table class="table">
         <thead>
             <tr>
@@ -40,14 +41,16 @@
                     <td>@device.Endpoint</td>
                     <td>@device.ClientId</td>
                     <td>@device.DeviceName</td>
-                    <td>@device.LightStatus</td>
-                    <td><button class="btn btn-primary" @onclick="() => ToggleLight(device.ClientId,device.LightStatus)">Toggle light</button></td>
+                    <td>@device.LightState</td>
+                    <td>
+                        @if (device.LightState != null) {
+                            <button class="btn btn-primary" @onclick="() => ToggleLight(device.ClientId,(bool)device.LightState)">Toggle light</button>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>
     </table>
-
-    
 }
 
 @code {
@@ -103,7 +106,7 @@
                 Endpoint = property.TryGetProperty("endpoint", out JsonElement endpoint)! ? endpoint.GetString()! : ""!,
                 ClientId = property.TryGetProperty("clientId", out JsonElement clientid)! ? clientid.GetString()! : ""!,
                 DeviceName = property.TryGetProperty("deviceName", out JsonElement devicename)! ? devicename.GetString()! : ""!,
-                LightStatus = property.TryGetProperty("lightState", out JsonElement lightstate)! ? lightstate.GetBoolean()! : false,
+                LightState = property.TryGetProperty("lightState", out JsonElement lightstate) && lightstate.ValueKind != JsonValueKind.Null ? lightstate.GetBoolean() : null
             };
             devices.Add(device);
         }
@@ -125,7 +128,7 @@
             // SUCCESS -> Update lightStatus value
             ClientDevice? foundDevice = DeviceList.First<ClientDevice>(device => device.ClientId == clientId)!;
             if (foundDevice is null) throw new Exception("Unable to find device");
-            foundDevice.LightStatus = !lightStatus;
+            foundDevice.LightState = !lightStatus;
         } catch (Exception ex) {
             Console.WriteLine(ex);
             errorCode = ex.Message;
@@ -137,6 +140,6 @@
         public string Endpoint { get; set; } = "";
         public string ClientId { get; set; } = "";
         public string DeviceName { get; set; } = "no name";
-        public bool LightStatus { get; set; } = false;
+        public bool? LightState { get; set; } = false;
     }
 }

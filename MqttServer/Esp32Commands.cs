@@ -60,7 +60,7 @@ public static class MqttServer {
             }
         }
 
-        throw new TimeoutException("Request not found!");
+        throw new TimeoutException("Request response not found!");
     }
     public static async Task SendDataAsync(string clientId, string topic, string payload) {
         if (Server is null) throw new Exception("Server not running!");
@@ -97,15 +97,11 @@ public static class MqttServer {
     }
 
     public static async Task<bool> GetLightState(string clientId) {
-        try {
-            if (Server is null) throw new Exception("Server not running!");
+        if (Server is null) throw new Exception("Server not running!");
 
-            string response = await RequestData(clientId, "getlightstate");
-            bool state = bool.Parse(response);
-            return state;
-        } catch (Exception) {
-            return false;
-        }
+        string response = await RequestData(clientId, "getlightstate");
+        bool state = bool.Parse(response);
+        return state;
     }
 
     public static void GetWeatherData(string clientId) {

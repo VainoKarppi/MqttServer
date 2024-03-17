@@ -184,6 +184,7 @@ static class MqttServerAPI {
                 await context.Response.WriteAsync("OK");
             } catch (Exception ex) {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                if (ex is TimeoutException) context.Response.StatusCode = StatusCodes.Status408RequestTimeout;
                 await context.Response.WriteAsync(ex.Message);
             }
         }
@@ -191,11 +192,12 @@ static class MqttServerAPI {
             List<object> values = [];
 
             foreach (var client in MqttServer.ConnectedClients) {
+                bool? state = null; try { state = await MqttServer.GetLightState(client.ClientId!); } catch { }
                 var obj = new {
                     client.Endpoint,
                     client.ClientId,
                     client.DeviceName,
-                    LightState = await MqttServer.GetLightState(client.ClientId!)
+                    LightState = state
                 };
                 values.Add(obj);
             }
