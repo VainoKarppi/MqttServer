@@ -114,13 +114,13 @@ static class MqttServerAPI {
         new Thread(async () => {
             if (WebApp is null) return;
             await WebApp.RunAsync();
+            Console.WriteLine("Stopped API server!");
         }).Start();
     }
 
     public static void StopAPIServer() {
         if (WebApp is null) return;
         WebApp.StopAsync();
-        Console.WriteLine("Stopped API server!");
     }
 
     static void InitializePages(WebApplication app) {

@@ -34,6 +34,15 @@ static class Database {
         //AddTestDataToDB();
     }
 
+    public static async Task CloseDatabase() {
+        if (Connection is null) return;
+        
+        await Connection.CloseAsync();
+        await Connection.DisposeAsync();
+        
+        Connection = null;
+    }
+
     public static bool IsConnectedToDatabase() {
         if (Connection is null) return false;
         if (Connection.State != ConnectionState.Open) return false;

@@ -126,30 +126,36 @@ void setup_wifi() {
 
 // CALLBACKS
 void callback(char *topic, byte *message, unsigned int length) {
-    Serial.print("Message arrived on topic: ");
-    Serial.print(topic);
-    Serial.print(". Message: ");
+    Serial.println("Topic: " + String(topic));
     String messageTemp;
 
     for (int i = 0; i < length; i++) {
-        Serial.print((char)message[i]);
         messageTemp += (char)message[i];
     }
-    Serial.println();
+    Serial.println("Message: " + messageTemp + "\n");
 
-    // Feel free to add more if statements to control more GPIOs with MQTT
+    // IS A DATA REQUEST FROM SERVER -> SEND RESPONSE
+    char *topic = strtok(messageTemp, "|");
+    char *key = strtok(NULL, "|");
+    if (key != NULL) {
+        
+    }
 
-    // If a message is received on the topic esp32/output, you check if the message is either "on" or "off".
-    // Changes the output state according to the message
-    if (String(topic) == "hello") {
-        Serial.print("Changing output to ");
+
+
+    // LED status Request from server. Read LED state end send result to server
+    if (String(topic) == "getletstate") {
+        int ledState = digitalRead(LED_OUTPUT_PIN);
+        client.publish(String(topic) + "|response:" + String(key), String(ledState));
+    }
+
+    if (String(topic) == "setledstate") {
         if (messageTemp == "on") {
             digitalWrite(LED_OUTPUT_PIN, HIGH);
-            Serial.println("on");
         } else if (messageTemp == "off") {
             digitalWrite(LED_OUTPUT_PIN, LOW);
-            Serial.println("off");
         }
+        Serial.println("LED TURNED " + messageTemp);
     }
 }
 
@@ -164,7 +170,7 @@ void reconnect() {
         if (client.connect("ESP32Client", mqtt_username, mqtt_password)) {
             Serial.println("connected");
             // Subscribe
-            client.subscribe("hello");
+            client.subscribe("getletstate");
         } else {
             Serial.print("failed, rc=");
             Serial.print(client.state());
