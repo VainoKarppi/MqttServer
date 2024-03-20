@@ -21,9 +21,12 @@ public static class MqttServer {
         Server = mqttFactory.CreateMqttServer(options);
 
         await Server.StartAsync();
+
+        // Subscribe to evenets
         Server.ApplicationMessageNotConsumedAsync += OnClientMessageEvent;
         Server.ClientConnectedAsync += OnClientConnectedEvent;
         Server.ClientDisconnectedAsync += OnClientDisconnectedEvent;
+
         Console.WriteLine("MQTT Server Started!");
 
         // Add test client:
@@ -122,6 +125,22 @@ public static class MqttServer {
         string topic = args.ApplicationMessage.Topic;
         string message = Encoding.UTF8.GetString(args.ApplicationMessage.PayloadSegment);
 
+
+
+        if (topic == "esp32/temperature") {
+            float temperature = float.Parse(message.Split(',')[0]);
+            float humidity = float.Parse(message.Split(',')[1]);
+            Database.WeatherData data = new() {
+                Date = DateTime.Now,
+                DeviceName = ConnectedClients.FirstOrDefault(client => client.ClientId == args.SenderId)!.DeviceName!,
+                Temperature = temperature,
+                Humidity = humidity
+            };
+            Database.AddWeatherData(data);
+            return Task.CompletedTask;
+        }
+
+
         if (topic.Contains('|')) {
             string responseCode = topic.Split('|')[1];
 
@@ -188,6 +207,7 @@ public static class MqttServer {
             lock (_consoleSyncRoot) {
                 Console.ForegroundColor = colorMap[logLevel];
                 Console.WriteLine(message);
+                Console.ForegroundColor = ConsoleColor.White;
 
                 if (exception != null) Console.WriteLine(exception);
             }

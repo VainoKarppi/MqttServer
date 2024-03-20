@@ -89,6 +89,8 @@ void loop() {
 
     // Add measurement to list, calculate average temp and send it to mqtt
     addMeasurement(measuredTemp);
+
+    // TODO calculate only AFTER 5 measurements and send to server!
     averageTemp = calculateAverage();
 
     // Print measured temperature to serial console
@@ -98,9 +100,11 @@ void loop() {
     // Convert the average temperature value to a char array and publish it to MQTT
     char tempString[8];
     dtostrf(averageTemp, 1, 2, tempString);
+
+    //TODO Send temperature in this format: "temperature,humidity" -> "21.5,40.3"
     client.publish("esp32/temperature", tempString);
 
-
+    // TODO instead of delay check if time has passed
     delay(5000);
 }
 

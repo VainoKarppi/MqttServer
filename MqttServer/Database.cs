@@ -47,7 +47,7 @@ static class Database {
 
         await CreateTables();
 
-        //AddTestDataToDB();
+        AddTestDataToDB();
     }
 
     public static async Task CloseDatabase() {
@@ -79,6 +79,7 @@ static class Database {
         string tableName = "weatherdata";
         using MySqlCommand weatherdata = new ($@"CREATE TABLE IF NOT EXISTS {tableName} (
             Id INT AUTO_INCREMENT PRIMARY KEY,
+            device_name TEXT,
             timestamp TIMESTAMP,
             humidity FLOAT NULL DEFAULT NULL,
             temperature FLOAT NULL DEFAULT NULL,
@@ -166,9 +167,12 @@ static class Database {
     }
 
     public static async void AddTestDataToDB() {
+        WeatherData[] dbData = await GetAllWeatherData();
+        if (dbData.Count() > 0) return;
 
         List<WeatherData> data = Enumerable.Range(1, 5).Select(index => new WeatherData {
             Id = index,
+            DeviceName = "testDevice",
             Date = DateTime.Now.AddDays(Random.Shared.Next(-3, 3)),
             Humidity = Random.Shared.Next(-20, 55),
             Temperature = Random.Shared.Next(-20, 55),
@@ -179,6 +183,7 @@ static class Database {
         foreach (var weatherData in data) {
             await AddWeatherData(weatherData);  
         }
+        Console.WriteLine("ADDED TEST DATA TO DB!");
         
     }
 
@@ -226,6 +231,7 @@ static class Database {
     public static WeatherData GetWeatherDataFromReader(MySqlDataReader reader) {
         WeatherData weather = new() {
             Id = (int)reader["id"],
+            DeviceName = (string)reader["device_name"],
             Date = (DateTime)reader["timestamp"],
             Humidity = reader["humidity"] != DBNull.Value ? (float)reader["humidity"] : null,
             Temperature = reader["temperature"] != DBNull.Value ? (float)reader["temperature"] : null,
@@ -245,11 +251,12 @@ static class Database {
 
     public static async Task<bool> AddWeatherData(WeatherData weatherData) {
         string tableName = "weatherdata";
-        string insertDataSql = $"INSERT INTO {tableName} (timestamp, humidity, temperature, wind, pressure) VALUES (@timestamp, @humidity, @temperature, @wind, @pressure)";
+        string insertDataSql = $"INSERT INTO {tableName} (timestamp, device_name, humidity, temperature, wind, pressure) VALUES (@timestamp, @device_name, @humidity, @temperature, @wind, @pressure)";
 
         using MySqlCommand command = new MySqlCommand(insertDataSql, Connection);
 
         command.Parameters.AddWithValue("@timestamp", weatherData.Date);
+        command.Parameters.AddWithValue("@device_name", weatherData.DeviceName);
         command.Parameters.AddWithValue("@humidity", weatherData.Humidity);
         command.Parameters.AddWithValue("@temperature", weatherData.Temperature);
         command.Parameters.AddWithValue("@wind", weatherData.Wind);
@@ -263,8 +270,9 @@ static class Database {
 
 
     public class WeatherData {
-        public int Id { get; set; }
-        public DateTime Date { get; set; }
+        public int? Id { get; set; }
+        public required string DeviceName { get; set; }
+        public required DateTime Date { get; set; }
         public float? Humidity { get; set; }
         public float? Temperature { get; set; }
         public float? Wind { get; set; }
