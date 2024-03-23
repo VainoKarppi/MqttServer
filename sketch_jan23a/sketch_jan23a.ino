@@ -2,6 +2,7 @@
 #include <PubSubClient.h>
 #include <Wire.h>
 #include <DHT.h>
+#include <ArduinoSTL.h> // Allows: std::vector<float> -> we can use this to clear the list
 
 #define DHTTYPE DHT11 // temp/moist sensor type
 #define DHTPIN 27     // temp/moist sensor data pin(middle)
@@ -16,40 +17,30 @@ const char* mqtt_clientID = "ESP32CLIENT";
 const char* mqtt_username = "your-username";
 const char* mqtt_password = "your-password";
 
+// Variables for tracking the measurements for average calculation
+int amountOfMeasurements = 5;
+
+// Temperature Measurements array --> Allows clearing the list after sending the values
+std::vector<float> measurements;
+
+
+
 WiFiClient espClient;
 PubSubClient client(espClient);
-
 const int LED_OUTPUT_PIN = 19; // debug led
-
 DHT dht(DHTPIN, DHTTYPE);
 
-/* Variables for tracking the measurements for average calculation */
-int amountOfMeasurements = 5;
-int measurementCounter = 0;
-
-/* Measurements array */
-float measurements[] = {0.0, 0.0, 0.0, 0.0, 0.0};
-
-/* Function that is used to add or update new measurement in the list */
-void addMeasurement(float temperature) {
-	measurements[measurementCounter] = temperature;
-	/* Update position */
-	measurementCounter += 1;
-  	/* Start again from the first item is the array is full */
-	if (measurementCounter == amountOfMeasurements) {
-		measurementCounter = 0;
-	}
-}
 
 /* Function to calculate the average of measured temperatures */
 float calculateAverage() {
-	float avgTemp = 0.0;
-	for (int counter = 0 ; counter < amountOfMeasurements ; counter++) {
-		avgTemp += measurements[counter];
-	}
-	/* Calculate the average temp */
-	avgTemp = avgTemp / amountOfMeasurements;
-	return(avgTemp);
+    // Calculate the average of all measurements
+    float average = 0.0;
+    for (float value : measurements) {
+        average += value;
+    }
+
+    // Calculate and return the average temp
+    return(sum / amountOfMeasurements);
 }
 
 void setup() {
@@ -60,72 +51,72 @@ void setup() {
 
     dht.begin();
 
-    setup_wifi();
-    client.setServer(mqtt_server, mqtt_port);
-    client.setCallback(callback);
+    bool connected = setup_wifi();
+    if (connected) {
+        client.setServer(mqtt_server, mqtt_port);
+        client.setCallback(callback);
+    }
 }
 
 void loop() {
-    if (!client.connected()) {
-        reconnect();
-    }
+    if (!client.connected()) { reconnect(); }
     client.loop();
 
-    // Variable for measured temperature
-    float measuredTemp = 0.0;
-
     // Read temperature from sensor
-    float h = dht.readHumidity();
-    measuredTemp = dht.readTemperature();
+    float measuredHumidity = dht.readHumidity();
+    float measuredTemp = dht.readTemperature();
 
-    Serial.print(F("Humidity: "));
-    Serial.print(h);
-    Serial.print(F("%  Temperature: "));
-    Serial.print(measuredTemp);
-    Serial.println();
 
-    // Variable for average temperature
-    float averageTemp = 0.0;
+    // Add measurement to array every 1 second
+    measurements.push_back(measuredTemp);
+    
 
-    // Add measurement to list, calculate average temp and send it to mqtt
-    addMeasurement(measuredTemp);
+    // calculate average only AFTER 5 measurements and send it to server!
+    if (sizeof(measurements) == amountOfMeasurements) {
+        float averageTemp = calculateAverage();
 
-    // TODO calculate only AFTER 5 measurements and send to server!
-    averageTemp = calculateAverage();
+        // Print measured temperature
+        Serial.print("Average (array used): ");
+        Serial.println(averageTemp);
 
-    // Print measured temperature to serial console
-    Serial.print("Average (array used): ");
-    Serial.println(averageTemp);
 
-    // Convert the average temperature value to a char array and publish it to MQTT
-    char tempString[8];
-    dtostrf(averageTemp, 1, 2, tempString);
+        // Send temperature in this format: "temperature,humidity" -> "21.5,40.3"
+        String data = String(averageTemp, 1) + "," + String(measuredHumidity, 1);
 
-    //TODO Send temperature in this format: "temperature,humidity" -> "21.5,40.3"
-    client.publish("esp32/temperature", tempString);
+        // Send data to server!
+        client.publish("esp32/weatherdata", data);
 
-    // TODO instead of delay check if time has passed
-    delay(5000);
+        // Clear all measurements from list since it has now been published!
+        measurements.clear();
+    }
+
+    // Get Masurement every 1 second
+    delay(1000);
 }
 
-void setup_wifi() {
-    delay(10);
+bool setup_wifi() {
     // We start by connecting to a WiFi network
-    Serial.println();
-    Serial.print("Connecting to ");
+    Serial.print("\nConnecting to ");
     Serial.println(ssid);
 
     WiFi.begin(ssid, password);
 
-    while (WiFi.status() != WL_CONNECTED) {
+    unsigned long startTime = millis();
+    unsigned long timeout = 10000;
+    while (WiFi.status() != WL_CONNECTED && millis() - startTime < timeout) {
         delay(500);
         Serial.print(".");
     }
 
-    Serial.println();
-    Serial.print("WiFi connected! ");
-    Serial.print("IP address: ");
-    Serial.print(WiFi.localIP());
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("\nWiFi connected successfully!");
+        Serial.print("IP address: ");
+        Serial.print(WiFi.localIP());
+        return(true);
+    } else {
+        Serial.println("\nWiFi connection timed out!");
+        return(false);
+    }
 }
 
 // CALLBACKS
@@ -137,13 +128,6 @@ void callback(char *topic, byte *message, unsigned int length) {
         messageTemp += (char)message[i];
     }
     Serial.println("Message: " + messageTemp + "\n");
-
-    // IS A DATA REQUEST FROM SERVER -> SEND RESPONSE
-    char *topic = strtok(messageTemp, "|");
-    char *key = strtok(NULL, "|");
-    if (key != NULL) {
-        
-    }
 
 
 
@@ -174,7 +158,8 @@ void reconnect() {
         if (client.connect("ESP32Client", mqtt_username, mqtt_password)) {
             Serial.println("connected");
             // Subscribe
-            client.subscribe("getletstate");
+            // TODO all callbacks
+            client.subscribe("getledstate");
         } else {
             Serial.print("failed, rc=");
             Serial.print(client.state());
