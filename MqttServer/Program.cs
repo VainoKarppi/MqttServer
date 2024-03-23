@@ -6,7 +6,7 @@ try {
 
     MqttServerAPI.StartAPIServer();
 
-    await MqttServer.StartMqttServer(1234,true);
+    await MqttServer.StartMqttServer();
 } catch (Exception ex) {
     Console.WriteLine(ex);
     Console.WriteLine("\n\n" + ex.Message.ToUpper());
@@ -14,7 +14,6 @@ try {
     await Database.CloseDatabase();
     MqttServerAPI.StopAPIServer();
     await MqttServer.StopMqttServer();
-
 
     await Task.Delay(500);
     return 1;

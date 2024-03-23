@@ -170,7 +170,7 @@ static class Database {
         WeatherData[] dbData = await GetAllWeatherData();
         if (dbData.Count() > 0) return;
 
-        List<WeatherData> data = Enumerable.Range(1, 5).Select(index => new WeatherData {
+        List<WeatherData> data = Enumerable.Range(1, 10).Select(index => new WeatherData {
             Id = index,
             DeviceName = "testDevice",
             Date = DateTime.Now.AddDays(Random.Shared.Next(-3, 3)),

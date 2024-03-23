@@ -13,8 +13,12 @@ public static class MqttServer {
     public static MQTTnet.Server.MqttServer? Server;
     private static Dictionary<int,string> Requests = [];
 
-    public static async Task StartMqttServer(int port, bool enableLogging = false) {
+    public static async Task StartMqttServer() {
         // TODO Read port from appsettings.json
+
+        IConfigurationRoot configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
+        _ = int.TryParse(configuration["MqttServer:Port"], out int port);
+        _ = bool.TryParse(configuration["MqttServer:Debug"]!, out bool enableLogging);
 
         var mqttFactory = enableLogging ? new MqttFactory(new ConsoleLogger()) : new MqttFactory();
         var options = new MqttServerOptionsBuilder().WithDefaultEndpoint().WithDefaultEndpointPort(port).Build();

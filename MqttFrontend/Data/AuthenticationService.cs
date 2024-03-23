@@ -49,22 +49,11 @@ public class AuthenticationService {
 
         // Read response content
         string responseData = await response.Content.ReadAsStringAsync();
-
         if (responseData == "{}" || responseData == "") throw new Exception("Server error!");
 
-        JsonObject jobject = JsonNode.Parse(responseData)!.AsObject();
-
-        User user = new() {
-            Id = (int)jobject["id"]!,
-            Username = (string)jobject["username"]!,
-            Expiration = (DateTime)jobject["expiration"]!,
-            Token = (string)jobject["token"]!
-        };
-        if (user.Id is null || user.Username is null || user.Expiration is null || user.Token is null) throw new ValidationException($"User data corrupt: {responseData}");
-
-        bool idExists = UsersList.Any(u => u.Id == user.Id);
-        if (!idExists) UsersList.Add(user);
-
+        var options = new JsonSerializerOptions {PropertyNameCaseInsensitive = true};
+        User? user = JsonSerializer.Deserialize<User>(responseData, options) ?? throw new ValidationException($"User data corrupt: {responseData}");
+        
         return user; 
     }
 
@@ -120,9 +109,9 @@ public class AuthenticationService {
     
 
     public class User {
-        public int? Id { get; set; }
-        public string? Username { get; set; }
-        public DateTime? Expiration { get; set; }
-        public string? Token { get; set; }
+        public required int? Id { get; set; }
+        public required string? Username { get; set; }
+        public required DateTime? Expiration { get; set; }
+        public required string? Token { get; set; }
     }
 }

@@ -23,7 +23,7 @@
     <h4>API server status: @apiResponding</h4>
     <h4>Database status: @dataBaseStatus</h4>
     <br>
-    <h4>Found Devices List:</h4>
+    <h4>Found Devices:</h4>
     <table class="table">
         <thead>
             <tr>
@@ -41,11 +41,13 @@
                     <td>@device.Endpoint</td>
                     <td>@device.ClientId</td>
                     <td>@device.DeviceName</td>
-                    <td>@device.LightState</td>
+                    @if (device.LightState is null) {
+                        <td style="color: red;">Not Available</td>
+                    } else {
+                        <td>@device.LightState</td>
+                    }
                     <td>
-                        @if (device.LightState != null) {
-                            <button class="btn btn-primary" @onclick="() => ToggleLight(device.ClientId,(bool)device.LightState)">Toggle light</button>
-                        }
+                        <button class="btn btn-primary" disabled="@(device.LightState is null)" @onclick="() => ToggleLight(device.ClientId,(bool)device.LightState!)">Toggle light</button>
                     </td>
                 </tr>
             }
@@ -80,7 +82,7 @@
     }
     private async Task<bool> CheckApiStatus() {
         try {
-            if (string.IsNullOrWhiteSpace(AuthenticationService.ApiUrl) || string.IsNullOrWhiteSpace(AuthenticationService.Token)) return false;
+            if (string.IsNullOrWhiteSpace(AuthenticationService.ApiUrl) || string.IsNullOrWhiteSpace(AuthenticationService.Token)) throw new Exception("Not logged in! Use Weather page to login!");
 
             using HttpClient client = new();
             HttpResponseMessage response = await client.GetAsync(AuthenticationService.ApiUrl);
@@ -98,18 +100,11 @@
         HttpResponseMessage response = await client.GetAsync(AuthenticationService.ApiUrl + $"deviceList");
 
         string responseData = await response.Content.ReadAsStringAsync();
-        JsonDocument data = JsonSerializer.Deserialize<JsonDocument>(responseData)!;
+
+        var options = new JsonSerializerOptions {PropertyNameCaseInsensitive = true};
+        List<ClientDevice>? devices = JsonSerializer.Deserialize<List<ClientDevice>>(responseData, options);
+        if (devices is null) return [];
         
-        List<ClientDevice> devices = [];
-        foreach (JsonElement property in data.RootElement.EnumerateArray()) {
-            ClientDevice device = new() {
-                Endpoint = property.TryGetProperty("endpoint", out JsonElement endpoint)! ? endpoint.GetString()! : ""!,
-                ClientId = property.TryGetProperty("clientId", out JsonElement clientid)! ? clientid.GetString()! : ""!,
-                DeviceName = property.TryGetProperty("deviceName", out JsonElement devicename)! ? devicename.GetString()! : ""!,
-                LightState = property.TryGetProperty("lightState", out JsonElement lightstate) && lightstate.ValueKind != JsonValueKind.Null ? lightstate.GetBoolean() : null
-            };
-            devices.Add(device);
-        }
         return devices;
     }
 

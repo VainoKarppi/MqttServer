@@ -42,22 +42,11 @@ public class WeatherForecastService
         
         string responseData = await response.Content.ReadAsStringAsync();
         if (responseData == "[]" || responseData == "{}" || responseData == "") return [];
-        Console.WriteLine(responseData);
-        using JsonDocument document = JsonDocument.Parse(responseData)!;
 
-        List<WeatherData> weatherData = new();
-        foreach (JsonElement element in document.RootElement.EnumerateArray()) {
-            WeatherData data = new() {
-                Id = element.TryGetProperty("id", out var id) && id.ValueKind != JsonValueKind.Null ? id.GetInt32() : null,
-                DeviceName = element.TryGetProperty("deviceName", out var name) && id.ValueKind != JsonValueKind.Null ? name.GetString() : null,
-                Date = element.TryGetProperty("date", out var date) && date.ValueKind != JsonValueKind.Null ? date.GetDateTime() : null,
-                Humidity = element.TryGetProperty("humidity", out var humidity) && humidity.ValueKind != JsonValueKind.Null ? (float)humidity.GetDecimal() : null,
-                Temperature = element.TryGetProperty("temperature", out var temperature) && temperature.ValueKind != JsonValueKind.Null ? (float)temperature.GetDecimal() : null,
-                Wind = element.TryGetProperty("wind", out var wind) && wind.ValueKind != JsonValueKind.Null ? (float)wind.GetDecimal() : null,
-                Pressure = element.TryGetProperty("pressure", out var pressure) && pressure.ValueKind != JsonValueKind.Null ? (float)pressure.GetDecimal() : null,
-            };
-            weatherData.Add(data);
-        }
+        var options = new JsonSerializerOptions {PropertyNameCaseInsensitive = true};
+        List<WeatherData>? weatherData = JsonSerializer.Deserialize<List<WeatherData>>(responseData, options);
+
+        if (weatherData is null) return [];
 
         // Order return by date
         return weatherData.OrderBy(data => data.Date).ToArray();

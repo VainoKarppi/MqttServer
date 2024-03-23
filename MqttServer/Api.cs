@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 
 static class MqttServerAPI {
     internal static WebApplication? WebApp = null;
+    private static List<object[]> LoggedInUsers = [];
+
     static MqttServerAPI() {
         WebApp = InitializeBuilder();
     }
@@ -35,7 +37,7 @@ static class MqttServerAPI {
         return app;
     }
 
-    private static List<object[]> LoggedInUsers = [];
+
     private static void AddAuthorization(WebApplication app) {
         app.Use(async (context, next) => {
             try {
@@ -124,18 +126,16 @@ static class MqttServerAPI {
     }
 
     static void InitializePages(WebApplication app) {
-        app.MapGet("/", (HttpContext context) => {return context.Response.WriteAsync("Hello, " + context.Items["user"]); });
+        app.MapGet("/", (HttpContext context) => {return context.Response.WriteAsync("Hello, " + ((Database.User)context.Items["user"]!).Username); });
         app.MapGet("/authenticate", (HttpContext context) => {
             var user = (Database.User)context.Items["user"]!;
-
             var returnData = new {user.Id,user.Username,user.Expiration,user.Token};  
-        
             return Results.Json(returnData);
 
         });
         app.MapGet("/servertime", Pages.GetServerTime);
         app.MapGet("/jsontest", Pages.GetJsonResult);
-        app.MapGet("/getWeatherData", Pages.GetAllWeatherData);
+        app.MapGet("/getWeatherData", Pages.GetWeatherData);
         app.MapGet("/toggleLight", Pages.ToggleLight);
         app.MapGet("/apiinfo", Pages.GetApiInfo);
         app.MapGet("/deviceList", Pages.GetAvailableDevices);
@@ -151,7 +151,7 @@ static class MqttServerAPI {
     //! ==================================
 
     protected static class Pages {
-        internal static async Task GetAllWeatherData(HttpContext context) {
+        internal static async Task GetWeatherData(HttpContext context) {
 
             DateOnly? start = DateOnly.TryParse(context.Request.Query["start"], out DateOnly startDate) ? startDate : null;
             DateOnly? end = DateOnly.TryParse(context.Request.Query["end"], out DateOnly endDate) ? endDate : null;
