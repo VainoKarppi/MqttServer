@@ -45,7 +45,7 @@ public static class MqttServer {
         Console.WriteLine("MQTT Server Stopped!");
     }
 
-    public static async Task<string> RequestData(string clientId, string topic, string? payload = null) {
+    public static async Task<string> RequestDataAsync(string clientId, string topic, string? payload = null) {
         if (Server is null) throw new Exception("Server not running!");
         if (payload is null) payload = "";
 
@@ -108,7 +108,7 @@ public static class MqttServer {
     public static async Task<bool> GetLightState(string clientId) {
         if (Server is null) throw new Exception("Server not running!");
 
-        string response = await RequestData(clientId, "getlightstate");
+        string response = await RequestDataAsync(clientId, "getlightstate");
         bool state = bool.Parse(response);
         return state;
     }
@@ -131,7 +131,7 @@ public static class MqttServer {
 
 
 
-        if (topic == "esp32/temperature") {
+        if (topic == "esp32/weatherdata") {
             float temperature = float.Parse(message.Split(',')[0]);
             float humidity = float.Parse(message.Split(',')[1]);
             Database.WeatherData data = new() {

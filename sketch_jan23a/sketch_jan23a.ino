@@ -120,16 +120,19 @@ bool setup_wifi() {
 }
 
 // CALLBACKS
-void callback(char *topic, byte *message, unsigned int length) {
-    Serial.println("Topic: " + String(topic));
-    String messageTemp;
+void callback(char *topic, byte *messageBytes, unsigned int length) {
+    Serial.println("\nTopic: " + String(topic));
 
+    String message;
     for (int i = 0; i < length; i++) {
-        messageTemp += (char)message[i];
+        message += (char)messageBytes[i];
     }
-    Serial.println("Message: " + messageTemp + "\n");
+    Serial.println("Message: " + message + "\n");
 
-
+    // Server pinging client -> send response
+    if (String(topic) == "ping") {
+        client.publish("pingresponse", client.clientId());
+    }
 
     // LED status Request from server. Read LED state end send result to server
     if (String(topic) == "getletstate") {
@@ -138,12 +141,12 @@ void callback(char *topic, byte *message, unsigned int length) {
     }
 
     if (String(topic) == "setledstate") {
-        if (messageTemp == "on") {
+        if (message == "on") {
             digitalWrite(LED_OUTPUT_PIN, HIGH);
-        } else if (messageTemp == "off") {
+        } else if (message == "off") {
             digitalWrite(LED_OUTPUT_PIN, LOW);
         }
-        Serial.println("LED TURNED " + messageTemp);
+        Serial.println("LED TURNED " + message);
     }
 }
 
@@ -159,6 +162,7 @@ void reconnect() {
             Serial.println("connected");
             // Subscribe
             // TODO all callbacks
+            client.
             client.subscribe("getledstate");
         } else {
             Serial.print("failed, rc=");

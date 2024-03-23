@@ -24,23 +24,33 @@ try {
 
 
 
-Console.WriteLine("\nCommands: Exit, Send, CreateApiToken\n");
+Console.WriteLine("\nCommands: Exit, Devices, Send, Request, CreateApiToken");
 while (true) {
     try {
-        string? input = Console.ReadLine()?.ToLower();
+        Console.Write("\n> ");
+        string? input = Console.ReadLine()?.ToLower().Trim();
         if (string.IsNullOrEmpty(input)) continue;
         if (input == "exit") break;
 
-        if (input == "send") {
-            Console.WriteLine("\nEnter target ID: ");
-            string? target = Console.ReadLine();
-            Console.WriteLine("\nEnter topic: ");
-            string? topic = Console.ReadLine();
-            Console.WriteLine("\nEnter payload: ");
-            string? mode = Console.ReadLine();
-            if (string.IsNullOrWhiteSpace(target) || string.IsNullOrWhiteSpace(topic) || string.IsNullOrWhiteSpace(mode)) continue;
+        if (input == "devices") {
+            var devices = MqttServer.ConnectedClients;
+            foreach (var device in devices) {
+                Console.WriteLine($"ID: {device.ClientId} | NAME: {device.DeviceName} | IP: {device.Endpoint}");
+            }
+            continue;
+        }
 
-            await MqttServer.SendDataAsync(target, topic, mode);
+        if (input == "request") {
+            dynamic data = GetPayload();
+            string response = await MqttServer.RequestDataAsync(data.Target, data.Topic, data.Payload);
+            Console.WriteLine(response);
+            continue;
+        }
+
+        if (input == "send") {
+            dynamic data = GetPayload();
+            MqttServer.SendDataAsync(data.Target, data.Topic, data.Payload);
+            continue;
         }
 
         if (input == "createapitoken") {
@@ -50,10 +60,25 @@ while (true) {
             string? expiration = Console.ReadLine();
             string token = MqttServerAPI.GenerateUserAndToken(username,expiration);
             Console.WriteLine($"Your token is:\n{token}\n\nKEEP IT SAFE!\n");
+            continue;
         }
+
+        Console.WriteLine("Invalid command!");
     } catch (Exception ex) {
         Console.WriteLine(ex.Message);
     }
+}
+
+static dynamic GetPayload() {
+    Console.WriteLine("\nEnter target ID: ");
+    string? target = Console.ReadLine();
+    Console.WriteLine("\nEnter topic: ");
+    string? topic = Console.ReadLine();
+    Console.WriteLine("\nEnter payload: ");
+    string? payload = Console.ReadLine();
+    if (string.IsNullOrWhiteSpace(target) || string.IsNullOrWhiteSpace(topic) || string.IsNullOrWhiteSpace(payload)) throw new Exception();
+
+    return new {Target = target, Topic = topic, Payload = payload};
 }
 
 return 0;
