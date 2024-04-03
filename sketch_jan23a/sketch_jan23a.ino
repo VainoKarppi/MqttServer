@@ -15,7 +15,7 @@ const char *mqtt_server = "172.20.50.151";
 const uint16_t mqtt_port = 1234;
 
 // time delay, of how often weather data should be sent to server (seconds)
-const unsigned long weatherSendInterval = 10;
+const unsigned long weatherSendInterval = 60;
 
 // Variables for tracking the measurements for average calculation
 int amountOfMeasurements = 5;
