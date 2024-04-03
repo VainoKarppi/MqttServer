@@ -89,7 +89,7 @@ public static class MqttServer {
     public static bool GetEsp32Status(string clientId) {
         try {
             if (Server is null) throw new Exception("Server not running!");
-            int index = ConnectedClients.FindIndex(client => client.ClientId == clientId);
+            int index = ConnectedClients.FindIndex(client => client.ClientId!.ToLower() == clientId.ToLower());
             if (index == -1) throw new Exception($"Unable to find client from list with id: {clientId}");
             // TODO ping esp32 to make sure device is still alive
             return true;
@@ -108,7 +108,7 @@ public static class MqttServer {
     public static async Task<bool> GetLightState(string clientId) {
         if (Server is null) throw new Exception("Server not running!");
 
-        string response = await RequestDataAsync(clientId, "getlightstate");
+        string response = await RequestDataAsync(clientId, "getledstate");
         bool state = bool.Parse(response);
         return state;
     }
@@ -128,17 +128,25 @@ public static class MqttServer {
 
         string topic = args.ApplicationMessage.Topic;
         string message = Encoding.UTF8.GetString(args.ApplicationMessage.PayloadSegment);
-
+        string deviceName = ConnectedClients.FirstOrDefault(client => client.ClientId == args.SenderId)!.ClientId!;
+        if (string.IsNullOrEmpty(deviceName)) throw new Exception("DEVICE NAME NOT FOUND!");
 
 
         if (topic == "esp32/weatherdata") {
-            float temperature = float.Parse(message.Split(',')[0]);
-            float humidity = float.Parse(message.Split(',')[1]);
+            string? temperature = message.Split(',')[0].Replace(".", ",");
+            string? humidity = message.Split(',')[1].Replace(".", ",");
+
+            float? temperatureValue = null;
+            float? humidityValue = null;
+
+            if (temperature.ToLower() != "nan") temperatureValue = float.Parse(temperature);
+            if (humidity.ToLower() != "nan") humidityValue = float.Parse(humidity);
+
             Database.WeatherData data = new() {
                 Date = DateTime.Now,
-                DeviceName = ConnectedClients.FirstOrDefault(client => client.ClientId == args.SenderId)!.DeviceName!,
-                Temperature = temperature,
-                Humidity = humidity
+                DeviceName = deviceName,
+                Temperature = temperatureValue,
+                Humidity = humidityValue
             };
             Database.AddWeatherData(data);
             return Task.CompletedTask;
@@ -171,7 +179,7 @@ public static class MqttServer {
         Console.WriteLine("Client Connected!");
         Console.WriteLine(args.ClientId);
         Console.WriteLine(args.Endpoint);
-
+        
         ConnectedClients.Add(new ClientDevice(args.ClientId,args.Endpoint,args.UserName));
         return Task.CompletedTask;
     }

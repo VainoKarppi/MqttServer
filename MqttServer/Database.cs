@@ -47,7 +47,7 @@ static class Database {
 
         await CreateTables();
 
-        AddTestDataToDB();
+        //AddTestDataToDB();
     }
 
     public static async Task CloseDatabase() {
