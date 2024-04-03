@@ -99,36 +99,48 @@ bool setup_wifi() {
 }
 
 // CALLBACKS
-void callback(char *topic, byte *messageBytes, unsigned int length) {
-    Serial.print("Message arrived on topic: ");
-    Serial.print(topic);
-    Serial.print(". Message: ");
+void callback(char *topicChar, byte *messageBytes, unsigned int length) {
+    Serial.println("Message arrived!");
 
+    // Make sure this callback message was ment for this device!
+    String topic = String(topicChar);
+    String targetDevice;
+    int topicIndex = topic.indexOf('/');
+    if (topicIndex != -1) {
+        targetDevice = topic.substring(topicIndex + 1);
+        topic = topic.substring(0, topicIndex);
+    }
+    Serial.print("TargetDevice: ");
+    Serial.println(targetDevice);
+    Serial.print("Topic: ");
+    Serial.println(topic);
+
+    // Get message string from message bytes
     String message;
     for (int i = 0; i < length; i++) {
         message += (char)messageBytes[i];
     }
-
+    Serial.print("Message: ");
     Serial.println(message);
-    
-    String key;
-    int pipeIndex = message.indexOf('|');
-    if (pipeIndex != -1) {
-        key = message.substring(0, pipeIndex);
-    }
-    // Feel free to add more if statements to control more GPIOs with MQTT
 
-    // If a message is received on the topic esp32/output, you check if the message is either "on" or "off".
-    // Changes the output state according to the message
-    if (String(topic) == "getledstate") {
+
+    // Get request key if it exsists
+    String key;
+    int keyIndex = message.indexOf('|');
+    if (keyIndex != -1) {
+        key = message.substring(0, keyIndex);
+    }
+
+    // GET LED state. And return to server using key as response code
+    if (topic == "getledstate") {
       int ledState = digitalRead(LED_OUTPUT_PIN);
-      Serial.println(ledState);
       String data = "response:" + key + "|" + String(ledState);
       // response as: message = "response:123|message"
       client.publish("esp32/getledstate", data.c_str());
     }
 
-    if (String(topic) == "setledstate") {
+    // Change LED state
+    if (topic == "setledstate") {
         if (message == "true") {
             digitalWrite(LED_OUTPUT_PIN, HIGH);
         } else if (message == "false") {
@@ -150,9 +162,9 @@ void reconnect() {
         // Attempt to connect
         if (client.connect(mqtt_clientID)) {
             Serial.println("connected");
-            // Subscribe
-            client.subscribe("getledstate");
-            client.subscribe("setledstate");
+            // Subscribe to callbacks for this specific device
+            client.subscribe(("getledstate/" + String(mqtt_clientID)).c_str());
+            client.subscribe(("setledstate/" + String(mqtt_clientID)).c_str());
         } else {
             Serial.print("failed, rc=");
             Serial.print(client.state());

@@ -61,7 +61,7 @@ public static class MqttServer {
             await Task.Delay(10);
             if (Responses.TryGetValue(key, out string? responseData)) {
                 Responses.Remove(key);
-                Console.WriteLine($"GOT RESPONSE: {responseData}");
+                Console.WriteLine($"DEVICE:{clientId} GOT RESPONSE: {responseData}");
                 return responseData;
             }
         }
@@ -74,7 +74,7 @@ public static class MqttServer {
         //if (!GetEsp32Status(clientId)) throw new Exception("Unable to contact ESP32");
 
         // Create a new message using the builder as usual.
-        var message = new MqttApplicationMessageBuilder().WithTopic(topic).WithPayload(payload).Build();
+        var message = new MqttApplicationMessageBuilder().WithTopic(topic + "/" + clientId).WithPayload(payload).Build();
 
         Console.WriteLine($"DEVICE:{clientId} SENDING MESSAGE: {message.Topic} | {payload}");
 
