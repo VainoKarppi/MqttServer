@@ -11,7 +11,7 @@ using MQTTnet.Server;
 public static class MqttServer {
     public static List<ClientDevice> ConnectedClients = [];
     public static MQTTnet.Server.MqttServer? Server;
-    private static Dictionary<int,string> Requests = [];
+    private static Dictionary<int,string> Responses = [];
 
     public static async Task StartMqttServer() {
         // TODO Read port from appsettings.json
@@ -32,9 +32,6 @@ public static class MqttServer {
         Server.ClientDisconnectedAsync += OnClientDisconnectedEvent;
 
         Console.WriteLine("MQTT Server Started!");
-
-        // Add test client:
-        ConnectedClients.Add(new ClientDevice("123","127.0.0.1:5007","testTemp"));
     }
 
     public static async Task StopMqttServer() {
@@ -45,25 +42,26 @@ public static class MqttServer {
         Console.WriteLine("MQTT Server Stopped!");
     }
 
-    public static async Task<string> RequestDataAsync(string clientId, string topic, string? payload = null) {
+    public static async Task<string> RequestDataAsync(string clientId, string topic, string payload = "") {
         if (Server is null) throw new Exception("Server not running!");
         if (payload is null) payload = "";
 
         // Key is used to indentify the response message result
         int key = new Random().Next(10000,99999);
 
-        // REQUEST DATA FORMAT = "topic|key" = "myTopic|52265"
-        topic = topic + "|" + key.ToString();
+        // REQUEST DATA PAYLOAD FORMAT = "key|payload" = "52265|myPayload"
+        payload = key.ToString() + "|" + payload;
         await SendDataAsync(clientId, topic, payload);
 
         Stopwatch stopwatch = Stopwatch.StartNew();
 
         // Get data from Requests dictionary. If the response for the key exists
         // Timeout for 1 second
-        while (stopwatch.ElapsedMilliseconds < 1000) {
+        while (stopwatch.ElapsedMilliseconds < 2000) {
             await Task.Delay(10);
-            if (Requests.TryGetValue(key, out string? responseData)) {
-                Requests.Remove(key);
+            if (Responses.TryGetValue(key, out string? responseData)) {
+                Responses.Remove(key);
+                Console.WriteLine($"GOT RESPONSE: {responseData}");
                 return responseData;
             }
         }
@@ -73,7 +71,7 @@ public static class MqttServer {
     }
     public static async Task SendDataAsync(string clientId, string topic, string payload) {
         if (Server is null) throw new Exception("Server not running!");
-        if (!GetEsp32Status(clientId)) throw new Exception("Unable to contact ESP32");
+        //if (!GetEsp32Status(clientId)) throw new Exception("Unable to contact ESP32");
 
         // Create a new message using the builder as usual.
         var message = new MqttApplicationMessageBuilder().WithTopic(topic).WithPayload(payload).Build();
@@ -102,15 +100,14 @@ public static class MqttServer {
     public static async Task SetLightState(string clientId, bool state) {
         if (Server is null) throw new Exception("Server not running!");
         
-        await SendDataAsync(clientId, "setledstate",state.ToString());
+        await SendDataAsync(clientId, "setledstate",state.ToString().ToLower());
     }
 
     public static async Task<bool> GetLightState(string clientId) {
         if (Server is null) throw new Exception("Server not running!");
 
         string response = await RequestDataAsync(clientId, "getledstate");
-        bool state = bool.Parse(response);
-        return state;
+        return response == "1";
     }
 
     public static void GetWeatherData(string clientId) {
@@ -142,6 +139,9 @@ public static class MqttServer {
             if (temperature.ToLower() != "nan") temperatureValue = float.Parse(temperature);
             if (humidity.ToLower() != "nan") humidityValue = float.Parse(humidity);
 
+            // Return if no data is being added at all!
+            if (temperatureValue is null && humidityValue is null) return Task.CompletedTask;
+
             Database.WeatherData data = new() {
                 Date = DateTime.Now,
                 DeviceName = deviceName,
@@ -153,22 +153,18 @@ public static class MqttServer {
         }
 
 
-        if (topic.Contains('|')) {
-            string responseCode = topic.Split('|')[1];
-
+        if (message.Contains('|')) {
+            string responseCode = message.Split('|')[0];
 
             if (responseCode.Contains("response:")) {
                 // Is response to Request from server to ESP
                 int key = int.Parse(responseCode.Split(':')[1]);
-                Requests.Add(key,message);
+                Responses.Add(key,message.Split('|')[1]);
             } else {
                 // Is request from ESP to Server
                 // TODO not really needed
             }
         }
-
-        Console.WriteLine(topic);
-        Console.WriteLine(message);
 
         return Task.CompletedTask;
     }
@@ -176,21 +172,16 @@ public static class MqttServer {
 
 
     private static Task OnClientConnectedEvent(ClientConnectedEventArgs args) {
-        Console.WriteLine("Client Connected!");
-        Console.WriteLine(args.ClientId);
-        Console.WriteLine(args.Endpoint);
+        Console.WriteLine($"Client Connected! {args.ClientId} | {args.Endpoint}");
         
         ConnectedClients.Add(new ClientDevice(args.ClientId,args.Endpoint,args.UserName));
         return Task.CompletedTask;
     }
 
     private static Task OnClientDisconnectedEvent(ClientDisconnectedEventArgs args) {
-        Console.WriteLine("Client disconnected!");
-        Console.WriteLine(args.ClientId);
-        Console.WriteLine(args.Endpoint);
+        Console.WriteLine($"Client disconnected! {args.ClientId} | {args.Endpoint}");
 
         ConnectedClients.RemoveAll(user => user.ClientId == args.ClientId);
-
         return Task.CompletedTask;
     }
     

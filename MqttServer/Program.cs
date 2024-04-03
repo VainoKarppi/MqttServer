@@ -49,7 +49,7 @@ while (true) {
 
         if (input == "send") {
             dynamic data = GetPayload();
-            MqttServer.SendDataAsync(data.Target, data.Topic, data.Payload);
+            await MqttServer.SendDataAsync(data.Target, data.Topic, data.Payload);
             continue;
         }
 
@@ -76,7 +76,7 @@ static dynamic GetPayload() {
     string? topic = Console.ReadLine();
     Console.WriteLine("\nEnter payload: ");
     string? payload = Console.ReadLine();
-    if (string.IsNullOrWhiteSpace(target) || string.IsNullOrWhiteSpace(topic) || string.IsNullOrWhiteSpace(payload)) throw new Exception();
+    if (string.IsNullOrWhiteSpace(target) || string.IsNullOrWhiteSpace(topic)) throw new Exception("Invalid input!");
 
     return new {Target = target, Topic = topic, Payload = payload};
 }
