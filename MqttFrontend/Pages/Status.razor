@@ -29,7 +29,6 @@
             <tr>
                 <th>Endpoint</th>
                 <th>Device Id</th>
-                <th>Device Name</th>
                 <th>Light Status</th>
                 <th>Options</th>
             </tr>
@@ -40,7 +39,6 @@
                 <tr>
                     <td>@device.Endpoint</td>
                     <td>@device.ClientId</td>
-                    <td>@device.DeviceName</td>
                     @if (device.LightState is null) {
                         <td style="color: red;">Not Available</td>
                     } else {
