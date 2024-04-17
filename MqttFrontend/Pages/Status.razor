@@ -74,6 +74,11 @@
         HttpResponseMessage response = await client.GetAsync(AuthenticationService.ApiUrl + $"apiInfo");
 
         string responseData = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrEmpty(responseData)) {
+            errorCode = "INVALID TOKEN! Use weather page to set token! (If you dont have token generated, create one by using server CLI 'CreateApiToken' command)";
+            return;
+        }
+        
         JsonElement data = JsonSerializer.Deserialize<JsonElement>(responseData)!;
         
         dataBaseStatus = data.TryGetProperty("databaseStatus", out JsonElement databaseElement) ? databaseElement.GetBoolean() : false;

@@ -11,6 +11,8 @@ If you get a message saying that MQTTNet or MySQLLibary was not found, run comma
 Install the dev-cert for https:
   -  dotnet dev-certs https --trust
 
+Make sure your database settings are set correctly in: ./MqttServer/appsettings.json !!!!
+
 
 Run MqttServer application:
   Navigate to "MqttServer" folder in terminal.

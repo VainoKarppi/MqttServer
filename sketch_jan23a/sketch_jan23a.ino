@@ -14,17 +14,23 @@ const char* mqtt_clientID = "ESP32CLIENT";
 const char *mqtt_server = "172.20.50.151";
 const uint16_t mqtt_port = 1234;
 
-// time delay, of how often weather data should be sent to server (seconds)
-const unsigned long weatherSendInterval = 60;
+// Sample Size and Get interval
+// Data will be sent to server after: sampleSize * weatherGetInterval (seconds)
+const int sampleSize = 5;
+const unsigned long sampleGetInterval = 60;
 
-// Variables for tracking the measurements for average calculation
-int amountOfMeasurements = 5;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 const int LED_OUTPUT_PIN = 19;
 DHT dht(DHTPIN, DHTTYPE); // DHT object
 unsigned long previousMillis = 0;
+
+
+// Average calculation
+float tempArray[sampleSize];       // Array to store temperature samples
+float humArray[sampleSize];        // Array to store humidity samples
+int sampleCount = 0;      // Counter for samples
 
 void setup() {
     Serial.begin(9600);
@@ -47,26 +53,27 @@ void loop() {
     
     unsigned long currentMillis = millis();
 
-    // Send Weather data to MQTT server every X seconds (10 seconds)
-    if (currentMillis - previousMillis >= weatherSendInterval*1000) {
+    // Send Weather data to MQTT server every X seconds
+    if (currentMillis - previousMillis >= sampleGetInterval*1000) {
         // Read temperature from sensor
         float measuredHumidity = dht.readHumidity();
         float measuredTemp = dht.readTemperature();
 
-        // Send temperature in this format: "temperature,humidity" -> "21.5,40.3"
-        String data = String(measuredTemp, 1) + "," + String(measuredHumidity, 1);
-        Serial.println(data);
+        // Make sure values are not null
+        if (!isnan(measuredHumidity) && !isnan(measuredTemp)) {
+            tempArray[sampleCount] = measuredTemp;
+            humArray[sampleCount] = measuredHumidity;
+            sampleCount++;
 
-        // Send data to server!
-        if (data != "nan,nan") {
-            client.publish("esp32/weatherdata", data.c_str());
-            Serial.println("Weather data sent!");
+            // Send data to broker after x samples
+            if (sampleCount == sampleSize) {
+                sendWeatherData();
+                sampleCount = 0;
+            }
         }
+
         previousMillis = currentMillis;
     }
-    
-
-    // 3 seconds TEST
     
     delay(50);
 }
@@ -173,4 +180,42 @@ void reconnect() {
             delay(2500);
         }
     }
+}
+
+
+
+// CALULATE AVERAGE TEMP FROM VALUES
+float calculateAverage(float array[]) {
+  float sum = 0;
+  Serial.print("Calculating average from: [");
+  for (int i = 0; i < sampleSize; i++) {
+    sum += array[i];
+    Serial.print(array[i]);
+    if (i != sampleSize-1) Serial.print(",");
+  }
+  Serial.println("]");
+  return sum / sampleSize;
+}
+
+void clearArray(float array[]) {
+  for (int i = 0; i < sampleSize; i++) {
+    array[i] = 0;
+  }
+}
+
+void sendWeatherData() {
+    float avgTemp = calculateAverage(tempArray);
+    float avgHum = calculateAverage(humArray);
+
+    // Send temperature in this format: "temperature,humidity" -> "21.5,40.3"
+    String data = String(avgTemp, 1) + "," + String(avgHum, 1);
+    client.publish("esp32/weatherdata", data.c_str());
+    Serial.println("Weather data sent!");
+    Serial.println(data);
+
+    
+
+    // Clear arrays and reset sample count
+    clearArray(tempArray);
+    clearArray(humArray);
 }
