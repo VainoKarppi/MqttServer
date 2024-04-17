@@ -60,10 +60,12 @@
     private bool apiResponding = false;
     private bool dataBaseStatus = false;
     protected override async Task OnInitializedAsync() {
+        // This method runs when client openes the web page
+        // Get Api Status and if server is alive and responding, Get ApiInfo. This returns database and ESP statuses
         apiResponding = await CheckApiStatus();
         if (apiResponding) await GetApiInfo();
         loading = false;
-        StateHasChanged();
+        StateHasChanged(); // Reload webview with updated variables (loading/apiresponding/dataBaseStatus)
     }
 
     private async Task GetApiInfo() {
@@ -71,6 +73,7 @@
         client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AuthenticationService.Token);
         HttpResponseMessage response = await client.GetAsync(AuthenticationService.ApiUrl + $"apiInfo");
 
+        // If message not found, Token is invalid
         string responseData = await response.Content.ReadAsStringAsync();
         if (string.IsNullOrEmpty(responseData)) {
             errorCode = "INVALID TOKEN! Use weather page to set token! (If you dont have token generated, create one by using server CLI 'CreateApiToken' command)";
@@ -79,14 +82,18 @@
         
         JsonElement data = JsonSerializer.Deserialize<JsonElement>(responseData)!;
         
+        // Check database alive status from json data
         dataBaseStatus = data.TryGetProperty("databaseStatus", out JsonElement databaseElement) ? databaseElement.GetBoolean() : false;
 
-        DeviceList = await GetDevices();
+        DeviceList = await GetDevices(); // Load ESP device list (there can be multiple ESP's)
     }
+
+    
     private async Task<bool> CheckApiStatus() {
         try {
-            if (string.IsNullOrWhiteSpace(AuthenticationService.ApiUrl) || string.IsNullOrWhiteSpace(AuthenticationService.Token)) throw new Exception("Not logged in! Use Weather page to login!");
-
+            if (string.IsNullOrWhiteSpace(AuthenticationService.ApiUrl) || string.IsNullOrWhiteSpace(AuthenticationService.Token)) throw new Exception("Not logged in! Use Weather page to authenticate!");
+            
+            // Create simple request from api to check if its responding
             using HttpClient client = new();
             HttpResponseMessage response = await client.GetAsync(AuthenticationService.ApiUrl);
 
@@ -102,6 +109,7 @@
         client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AuthenticationService.Token);
         HttpResponseMessage response = await client.GetAsync(AuthenticationService.ApiUrl + $"deviceList");
 
+        // Get devices list from server in Json
         string responseData = await response.Content.ReadAsStringAsync();
 
         var options = new JsonSerializerOptions {PropertyNameCaseInsensitive = true};
@@ -116,14 +124,16 @@
             if (AuthenticationService.ApiUrl is null || AuthenticationService.Token is null) throw new Exception("Token or URL is null!");
             using HttpClient client = new();
 
+            // Send Get request to server changing light state. Use query options to set the state and target esp
             client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AuthenticationService.Token);
             HttpResponseMessage response = await client.GetAsync(AuthenticationService.ApiUrl + $"toggleLight?clientId={clientId}&state={(!lightStatus).ToString().ToLower()}");
             
+            // Check that light was succesfully toggled
             if (response.StatusCode == System.Net.HttpStatusCode.BadRequest) throw new Exception("Request error");
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized) throw new Exception("Invalid credientials");
             if (!response.IsSuccessStatusCode) throw new Exception("Server error");
 
-            // SUCCESS -> Update lightStatus value
+            // SUCCESS -> Update lightStatus value for specific device in DeviceList array
             ClientDevice? foundDevice = DeviceList.First<ClientDevice>(device => device.ClientId == clientId)!;
             if (foundDevice is null) throw new Exception("Unable to find device");
             foundDevice.LightState = !lightStatus;

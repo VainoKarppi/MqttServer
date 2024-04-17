@@ -65,7 +65,7 @@ void loop() {
             humArray[sampleCount] = measuredHumidity;
             sampleCount++;
 
-            // Send data to broker after x samples
+            // Send data to broker after sampleSize is reached
             if (sampleCount == sampleSize) {
                 sendWeatherData();
                 sampleCount = 0;
@@ -87,6 +87,7 @@ bool setup_wifi() {
 
     WiFi.begin(ssid, password);
 
+    // Connect to to wifi and add timeout
     unsigned long startTime = millis();
     unsigned long timeout = 10000;
     while (WiFi.status() != WL_CONNECTED && millis() - startTime < timeout) {
@@ -94,6 +95,7 @@ bool setup_wifi() {
         Serial.print(".");
     }
 
+    // Check if connected, print ip
     if (WiFi.status() == WL_CONNECTED) {
         Serial.println("\nWiFi connected successfully!");
         Serial.print("IP address: ");
@@ -110,6 +112,7 @@ void callback(char *topicChar, byte *messageBytes, unsigned int length) {
     Serial.println("Message arrived!");
 
     // Make sure this callback message was ment for this device!
+    // Parse targetDevice and check if the message is ment for THIS device
     String topic = String(topicChar);
     String targetDevice;
     int topicIndex = topic.indexOf('/');
@@ -140,14 +143,19 @@ void callback(char *topicChar, byte *messageBytes, unsigned int length) {
 
     // GET LED state. And return to server using key as response code
     if (topic == "getledstate") {
-      int ledState = digitalRead(LED_OUTPUT_PIN);
-      String data = "response:" + key + "|" + String(ledState);
-      // response as: message = "response:123|message"
-      client.publish("esp32/getledstate", data.c_str());
+        if (!targetDevice.equals(mqtt_clientID)) { return; } // This message wasnt ment for this device!
+
+        int ledState = digitalRead(LED_OUTPUT_PIN);
+        String data = "response:" + key + "|" + String(ledState);
+        // response as: message = "response:123|message"
+        client.publish("esp32/getledstate", data.c_str()); // Send LED state back to requester
     }
 
     // Change LED state
     if (topic == "setledstate") {
+        if (!targetDevice.equals(mqtt_clientID)) { return; } // This message wasnt ment for this device!
+
+        // Sed LED state to On or OFF
         if (message == "true") {
             digitalWrite(LED_OUTPUT_PIN, HIGH);
         } else if (message == "false") {
@@ -197,11 +205,6 @@ float calculateAverage(float array[]) {
   return sum / sampleSize;
 }
 
-void clearArray(float array[]) {
-  for (int i = 0; i < sampleSize; i++) {
-    array[i] = 0;
-  }
-}
 
 void sendWeatherData() {
     float avgTemp = calculateAverage(tempArray);
@@ -212,10 +215,4 @@ void sendWeatherData() {
     client.publish("esp32/weatherdata", data.c_str());
     Serial.println("Weather data sent!");
     Serial.println(data);
-
-    
-
-    // Clear arrays and reset sample count
-    clearArray(tempArray);
-    clearArray(humArray);
 }

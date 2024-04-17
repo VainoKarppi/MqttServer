@@ -87,6 +87,8 @@
     private string errorCode = "";
     private bool skipNextRender = false;
 
+    // Run once on page load
+    // If user not found, show token and api url
     protected override async Task OnInitializedAsync() {
         try {
             user = await AuthenticationService.Authenticate()!;
@@ -99,16 +101,18 @@
         connecting = false; 
     }
 
-    
+    // runs after every render
     protected override async Task OnAfterRenderAsync(bool firstrender) {
         try {
+            // Prevents to run in loop infinitly after running pafe first time
             if (skipNextRender || firstrender) {
                 skipNextRender = false;
                 return;
             };
             if (user is null) return;
-            skipNextRender = true;
+            skipNextRender = true; // user found: Show weather forecasts
 
+            // Check if useTime was enabled. If yes, validate and request from server using those dates
             if (useTime) {
                 if (startDate > endDate) {
                     forecasts = [];
@@ -124,9 +128,10 @@
             Console.WriteLine(ex);
             errorCode = ex.Message;
         }
-        StateHasChanged();
+        StateHasChanged(); // Update view after forecasts has been updated
     }
 
+    // Update local API key and URl. Also update in appsettings.json
     private async Task UpdateAPIData() {
         try {
             connecting = true;
@@ -140,10 +145,12 @@
         }
         connecting = false;
     }
+    // Using GUID token
     private async Task UpdateApiKey() {
         if (ApiKey is null || ApiKey.Length != 36) throw new Exception("Invalid API key!");
         await AuthenticationService.UpdateApiKey(ApiKey);
     }
+    // Using HTTP, HTTPS not supported!
     private async Task UpdateApiURL() {
         if (string.IsNullOrWhiteSpace(ApiUrl)) throw new Exception("Invalid API URL!");
         await AuthenticationService.UpdateApiUrl(ApiUrl);
