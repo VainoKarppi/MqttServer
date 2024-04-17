@@ -1,164 +1,84 @@
-﻿using MQTTnet.Diagnostics;
-using MQTTnet.Protocol;
-using MQTTnet.Server;
-using MQTTnet;
-using System.Text.Json;
-using MQTTnet.Packets;
-using MQTTnet.Client;
-using System.Text;
-using Microsoft.AspNetCore.Components;
+﻿
 
+try {
+    await Database.ConnectToDatabase();
+    Console.WriteLine("Connected to database!");
 
-
-//! START SERVER
-
-// CREATE SERVER
-var mqttFactory = new MqttFactory();
-//var mqttFactory = new MqttFactory(new ConsoleLogger());
-var options = new MqttServerOptionsBuilder().WithDefaultEndpoint().WithDefaultEndpointPort(1234).Build();
-using MqttServer Server = mqttFactory.CreateMqttServer(options);
-
-
-// Connect to database and select it. Creates new database if does not exists
-await Database.ConnectToDatabase();
-Console.WriteLine("Connected to database!");
-
-bool startApiThread = true;
-if (startApiThread) {
     MqttServerAPI.StartAPIServer();
+
+    await MqttServer.StartMqttServer();
+} catch (Exception ex) {
+    Console.WriteLine(ex);
+    Console.WriteLine("\n\n" + ex.Message.ToUpper());
+
+    await Database.CloseDatabase();
+    MqttServerAPI.StopAPIServer();
+    await MqttServer.StopMqttServer();
+
+    await Task.Delay(500);
+    return 1;
 }
 
-// Subscribe to all client messages
-Server.ApplicationMessageNotConsumedAsync += ClientMessageEvent;
-Server.ClientConnectedAsync += ClientConnectedEvent;
-Server.ClientDisconnectedAsync += ClientDisconnectedEvent;
 
 
-await Server.StartAsync();
-Console.WriteLine("Server Started!");
 
 
-Console.WriteLine("\nCommands: Exit, Send, CreateToken\n");
+
+Console.WriteLine("\nCommands: Exit, Devices, Send, Request, CreateApiToken");
 while (true) {
     try {
-        string? input = Console.ReadLine()?.ToLower();
+        Console.Write("\n> ");
+        string? input = Console.ReadLine()?.ToLower().Trim();
         if (string.IsNullOrEmpty(input)) continue;
         if (input == "exit") break;
 
-        if (input == "send") {
-            Console.WriteLine("\nEnter topic: ");
-            string? topic = Console.ReadLine();
-            Console.WriteLine("\nEnter payload: ");
-            string? mode = Console.ReadLine();
-            await SendData(topic, mode);
+        if (input == "devices") {
+            var devices = MqttServer.ConnectedClients;
+            foreach (var device in devices) {
+                Console.WriteLine($"ID: {device.ClientId} | NAME: {device.DeviceName} | IP: {device.Endpoint}");
+            }
+            continue;
         }
 
-        if (input == "createtoken") {
+        if (input == "request") {
+            dynamic data = GetPayload();
+            string response = await MqttServer.RequestDataAsync(data.Target, data.Topic, data.Payload);
+            Console.WriteLine(response);
+            continue;
+        }
+
+        if (input == "send") {
+            dynamic data = GetPayload();
+            await MqttServer.SendDataAsync(data.Target, data.Topic, data.Payload);
+            continue;
+        }
+
+        if (input == "createapitoken") {
             Console.WriteLine("\nEnter username: ");
             string? username = Console.ReadLine();
             Console.WriteLine("\nEnter expiration time in days (default is one year): ");
             string? expiration = Console.ReadLine();
             string token = MqttServerAPI.GenerateUserAndToken(username,expiration);
             Console.WriteLine($"Your token is:\n{token}\n\nKEEP IT SAFE!\n");
+            continue;
         }
+
+        Console.WriteLine("Invalid command!");
     } catch (Exception ex) {
         Console.WriteLine(ex.Message);
     }
 }
 
+static dynamic GetPayload() {
+    Console.WriteLine("\nEnter target ID: ");
+    string? target = Console.ReadLine();
+    Console.WriteLine("\nEnter topic: ");
+    string? topic = Console.ReadLine();
+    Console.WriteLine("\nEnter payload: ");
+    string? payload = Console.ReadLine();
+    if (string.IsNullOrWhiteSpace(target) || string.IsNullOrWhiteSpace(topic)) throw new Exception("Invalid input!");
 
-
-Task ClientMessageEvent(ApplicationMessageNotConsumedEventArgs args) {
-    string topic = args.ApplicationMessage.Topic;
-    string message = Encoding.UTF8.GetString(args.ApplicationMessage.PayloadSegment);
-
-    Console.WriteLine(topic);
-    Console.WriteLine(message);
-
-    return Task.CompletedTask;
+    return new {Target = target, Topic = topic, Payload = payload};
 }
 
-Task ClientConnectedEvent(ClientConnectedEventArgs args) {
-    Console.WriteLine("Client Connected!");
-    Console.WriteLine(args.ClientId);
-    Console.WriteLine(args.Endpoint);
-
-    return Task.CompletedTask;
-}
-
-Task ClientDisconnectedEvent(ClientDisconnectedEventArgs args) {
-    Console.WriteLine("Client disconnected!");
-    Console.WriteLine(args.ClientId);
-
-    return Task.CompletedTask;
-}
-
-
-
-async Task SendData(string? topic, string? mode) {
-
-    // Create a new message using the builder as usual.
-    var message = new MqttApplicationMessageBuilder().WithTopic(topic).WithPayload(mode).Build();
-
-    Console.WriteLine(message.Topic);
-    Console.WriteLine(message.ConvertPayloadToString());
-
-    // Now inject the new message at the broker.
-    await Server.InjectApplicationMessage(new InjectedMqttApplicationMessage(message) {
-        SenderClientId = "SenderClientId"
-    });
-}
-
-
-
-
-
-
-
-
-class ConsoleLogger : IMqttNetLogger {
-    readonly object _consoleSyncRoot = new();
-
-    public bool IsEnabled => true;
-
-    public void Publish(MqttNetLogLevel logLevel, string source, string message, object[]? parameters, Exception? exception)
-    {
-        var foregroundColor = ConsoleColor.White;
-        switch (logLevel)
-        {
-            case MqttNetLogLevel.Verbose:
-                foregroundColor = ConsoleColor.White;
-                break;
-
-            case MqttNetLogLevel.Info:
-                foregroundColor = ConsoleColor.Green;
-                break;
-
-            case MqttNetLogLevel.Warning:
-                foregroundColor = ConsoleColor.DarkYellow;
-                break;
-
-            case MqttNetLogLevel.Error:
-                foregroundColor = ConsoleColor.Red;
-                break;
-        }
-
-        if (parameters?.Length > 0)
-        {
-            message = string.Format(message, parameters);
-        }
-
-        lock (_consoleSyncRoot)
-        {
-            Console.ForegroundColor = foregroundColor;
-            Console.WriteLine(message);
-
-            if (exception != null)
-            {
-                Console.WriteLine(exception);
-            }
-        }
-    }
-}
-
-
+return 0;

@@ -2,7 +2,7 @@
 $apiUrl = "http://localhost:5000/"
 
 # Define the API token
-$apiToken = "123456"
+$apiToken = "6dc3017d-0458-4312-ac46-43bc4d137561"
 
 # Define the headers with the API token
 $headers = @{

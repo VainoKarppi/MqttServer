@@ -1,5 +1,6 @@
 ﻿@page "/fetchdata"
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
 @using MqttFrontend.Data
 @using System
 @inject WeatherForecastService ForecastService
@@ -9,74 +10,142 @@
 
 <h1>Weather data</h1>
 
+@if (user is null && connecting) {
+    <p><em>Connecting...</em></p>
+    return;
+}
 
-@if (!authorized) {
+@if (user is null) {
     <p><em>You are not authorized!</em></p>
-
+    <p>Enter API URL</p>
+    <InputText @bind-Value="ApiUrl" />
+    <br><br>
     <p>Enter API key</p>
     <InputText @bind-Value="ApiKey" />
     <br><br>
-    <button class="btn btn-primary" @onclick="UpdateApiKey">Reload</button>
+    <button class="btn btn-primary" @onclick="UpdateAPIData">Connect</button>
     <br><br>
     <p style="color: red;">@errorCode</p>
+
+    return;
+}
+
+<p><em>You are authorized!</em></p>
+
+<p style="color: red;">@errorCode</p>
+
+@if (forecasts == null) {
+    <p><em>Loading...</em></p>
 } else {
-    <p><em>You are authorized!</em></p>
+    
+    <label>Start Date</label>
+    <InputDate style="max-width: 150px;" class="form-control" @bind-Value="@startDate" />
+    <br>
+    <label>End Date</label>
+    <InputDate style="max-width: 150px;" class="form-control" @bind-Value="@endDate"/>
+    <a>Use time set <InputCheckbox @bind-Value="useTime" /></a>
+    <br>
 
-
-    @if (forecasts == null) {
-        <p><em>Loading...</em></p>
-    } else {
-        <table class="table">
-            <thead>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Device Name</th>
+                <th>Humidity</th>
+                <th>Temp. (C)</th>
+                <th>Wind</th>
+                <th>Pressure</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var forecast in forecasts)
+            {
                 <tr>
-                    <th>Date</th>
-                    <th>Temp. (C)</th>
-                    <th>Temp. (F)</th>
-                    <th>Summary</th>
+                    <td>@forecast.Date</td>
+                    <td>@forecast.DeviceName</td>
+                    <td>@forecast.Humidity</td>
+                    <td>@forecast.Temperature</td>
+                    <td>@forecast.Wind</td>
+                    <td>@forecast.Pressure</td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach (var forecast in forecasts)
-                {
-                    <tr>
-                        <td>@forecast.Date.ToShortDateString()</td>
-                        <td>@forecast.TemperatureC</td>
-                        <td>@forecast.TemperatureF</td>
-                        <td>@forecast.Summary</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    }
+            }
+        </tbody>
+    </table>
 }
 
 
 
 @code {
-    private WeatherForecast[]? forecasts;
-    private bool authorized = false;
-    private string? ApiKey;
+    private bool useTime = false;
+    private DateTime startDate = DateTime.Now.AddDays(-1);
+    private DateTime endDate = DateTime.Now;
+    private WeatherForecastService.WeatherData[]? forecasts;
+    private AuthenticationService.User? user;
+    private bool connecting = true;
+    private string? ApiKey = AuthenticationService.Token; // TODO store api key to local cache
+    private string? ApiUrl = AuthenticationService.ApiUrl;
     private string errorCode = "";
+    private bool skipNextRender = false;
 
     protected override async Task OnInitializedAsync() {
-        if (ApiKey is null) return;
-        Console.WriteLine(ApiKey);
-        authorized = await AuthenticationService.Authorized(ApiKey);
-        forecasts = await ForecastService.GetForecastAsync();
-    }
-    protected override void OnAfterRender(bool firstRender) {
-        Console.WriteLine(ApiKey);
+        try {
+            user = await AuthenticationService.Authenticate()!;
+            errorCode = "";
+            StateHasChanged();
+        } catch (Exception ex) {
+            Console.WriteLine(ex);
+            errorCode = ex.Message;
+        }
+        connecting = false; 
     }
 
     
-    private async Task UpdateApiKey() {
-        if (ApiKey is null || ApiKey.Length != 6) {
-            errorCode = "Invalid API key!";
-            return;
+    protected override async Task OnAfterRenderAsync(bool firstrender) {
+        try {
+            if (skipNextRender || firstrender) {
+                skipNextRender = false;
+                return;
+            };
+            if (user is null) return;
+            skipNextRender = true;
+
+            if (useTime) {
+                if (startDate > endDate) {
+                    forecasts = [];
+                    throw new Exception("End date cannot be lower than start date!");
+                }
+                forecasts = await ForecastService.GetForecastAsync(user.Token!,DateOnly.FromDateTime(startDate),DateOnly.FromDateTime(endDate));
+            } else {
+                forecasts = await ForecastService.GetForecastAsync(user.Token!);
+            }
+
+            errorCode = "";
+        } catch (Exception ex) {
+            Console.WriteLine(ex);
+            errorCode = ex.Message;
         }
-        AuthenticationService.UpdateApiKey(ApiKey);
-        authorized = await AuthenticationService.Authorized(ApiKey);
-        forecasts = await ForecastService.GetForecastAsync();
         StateHasChanged();
+    }
+
+    private async Task UpdateAPIData() {
+        try {
+            connecting = true;
+            await UpdateApiURL();
+            await UpdateApiKey();
+            user = await AuthenticationService.Authenticate()!;
+            errorCode = "";
+        } catch (Exception ex) {
+            Console.WriteLine(ex);
+            errorCode = ex.Message; 
+        }
+        connecting = false;
+    }
+    private async Task UpdateApiKey() {
+        if (ApiKey is null || ApiKey.Length != 36) throw new Exception("Invalid API key!");
+        await AuthenticationService.UpdateApiKey(ApiKey);
+    }
+    private async Task UpdateApiURL() {
+        if (string.IsNullOrWhiteSpace(ApiUrl)) throw new Exception("Invalid API URL!");
+        await AuthenticationService.UpdateApiUrl(ApiUrl);
     }
 }

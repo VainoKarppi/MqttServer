@@ -1,0 +1,145 @@
+@page "/status"
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@using MqttFrontend.Data
+@using System
+@using System.Text.Json
+@inject AuthenticationService AuthenticationService
+
+<PageTitle>Status</PageTitle>
+
+<p style="color: red;">@errorCode</p>
+
+@if (loading && errorCode != "") return;
+
+@if (AuthenticationService.ApiUrl is null || AuthenticationService.Token is null) {
+    <p><em>Not connected to API! (use fetch data page to authenticate)</em></p>
+    return;
+}
+
+@if (loading) {
+    <p><em>Loading...</em></p>
+} else {
+    <h4>API server status: @apiResponding</h4>
+    <h4>Database status: @dataBaseStatus</h4>
+    <br>
+    <h4>Found Devices:</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>Device Id</th>
+                <th>Device Name</th>
+                <th>Light Status</th>
+                <th>Options</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var device in DeviceList)
+            {
+                <tr>
+                    <td>@device.Endpoint</td>
+                    <td>@device.ClientId</td>
+                    <td>@device.DeviceName</td>
+                    @if (device.LightState is null) {
+                        <td style="color: red;">Not Available</td>
+                    } else {
+                        <td>@device.LightState</td>
+                    }
+                    <td>
+                        <button class="btn btn-primary" disabled="@(device.LightState is null)" @onclick="() => ToggleLight(device.ClientId,(bool)device.LightState!)">Toggle light</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ClientDevice> DeviceList = [];
+    private string errorCode = "";
+    private bool loading = true;
+    private bool apiResponding = false;
+    private bool dataBaseStatus = false;
+    protected override async Task OnInitializedAsync() {
+        apiResponding = await CheckApiStatus();
+        if (apiResponding) await GetApiInfo();
+        loading = false;
+        StateHasChanged();
+    }
+
+    private async Task GetApiInfo() {
+        using HttpClient client = new();
+        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AuthenticationService.Token);
+        HttpResponseMessage response = await client.GetAsync(AuthenticationService.ApiUrl + $"apiInfo");
+
+        string responseData = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrEmpty(responseData)) {
+            errorCode = "INVALID TOKEN! Use weather page to set token! (If you dont have token generated, create one by using server CLI 'CreateApiToken' command)";
+            return;
+        }
+        
+        JsonElement data = JsonSerializer.Deserialize<JsonElement>(responseData)!;
+        
+        dataBaseStatus = data.TryGetProperty("databaseStatus", out JsonElement databaseElement) ? databaseElement.GetBoolean() : false;
+
+        DeviceList = await GetDevices();
+    }
+    private async Task<bool> CheckApiStatus() {
+        try {
+            if (string.IsNullOrWhiteSpace(AuthenticationService.ApiUrl) || string.IsNullOrWhiteSpace(AuthenticationService.Token)) throw new Exception("Not logged in! Use Weather page to login!");
+
+            using HttpClient client = new();
+            HttpResponseMessage response = await client.GetAsync(AuthenticationService.ApiUrl);
+
+            return true;
+        } catch (Exception ex) {
+            errorCode = ex.Message;
+            return false;
+        }
+    }
+    
+    private async Task<List<ClientDevice>> GetDevices() {
+        using HttpClient client = new();
+        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AuthenticationService.Token);
+        HttpResponseMessage response = await client.GetAsync(AuthenticationService.ApiUrl + $"deviceList");
+
+        string responseData = await response.Content.ReadAsStringAsync();
+
+        var options = new JsonSerializerOptions {PropertyNameCaseInsensitive = true};
+        List<ClientDevice>? devices = JsonSerializer.Deserialize<List<ClientDevice>>(responseData, options);
+        if (devices is null) return [];
+        
+        return devices;
+    }
+
+    private async Task ToggleLight(string clientId, bool lightStatus) {
+        try {
+            if (AuthenticationService.ApiUrl is null || AuthenticationService.Token is null) throw new Exception("Token or URL is null!");
+            using HttpClient client = new();
+
+            client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AuthenticationService.Token);
+            HttpResponseMessage response = await client.GetAsync(AuthenticationService.ApiUrl + $"toggleLight?clientId={clientId}&state={(!lightStatus).ToString().ToLower()}");
+            
+            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest) throw new Exception("Request error");
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized) throw new Exception("Invalid credientials");
+            if (!response.IsSuccessStatusCode) throw new Exception("Server error");
+
+            // SUCCESS -> Update lightStatus value
+            ClientDevice? foundDevice = DeviceList.First<ClientDevice>(device => device.ClientId == clientId)!;
+            if (foundDevice is null) throw new Exception("Unable to find device");
+            foundDevice.LightState = !lightStatus;
+        } catch (Exception ex) {
+            Console.WriteLine(ex);
+            errorCode = ex.Message;
+        }
+        StateHasChanged();
+    }
+
+    private class ClientDevice {
+        public string Endpoint { get; set; } = "";
+        public string ClientId { get; set; } = "";
+        public string DeviceName { get; set; } = "no name";
+        public bool? LightState { get; set; } = false;
+    }
+}
